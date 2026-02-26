@@ -44,7 +44,44 @@ def get_initial_assessment():
         
         all_questions = easy_questions + medium_questions + hard_questions
         
-        # If no questions found, get any available questions
+        # If no questions found, generate them using AI
+        if not all_questions or len(all_questions) < 20:
+            print("Generating AI questions for initial assessment")
+            from ai_question_generator import ai_question_generator
+            
+            category = 'Programming'  # Default category for initial assessment
+            difficulties = ['easy'] * 5 + ['medium'] * 10 + ['hard'] * 5
+            
+            for difficulty in difficulties:
+                try:
+                    question_data = ai_question_generator.generate_question(
+                        'multiple_choice', difficulty, category
+                    )
+                    
+                    new_question = Question(
+                        question_text=question_data['question_text'],
+                        question_type='multiple_choice',
+                        difficulty_level=difficulty,
+                        category=category,
+                        correct_answer=question_data.get('correct_answer'),
+                        options=question_data.get('options'),
+                        explanation=question_data.get('explanation'),
+                        is_active=True
+                    )
+                    db.session.add(new_question)
+                except Exception as gen_error:
+                    print(f"Error generating question: {gen_error}")
+                    continue
+            
+            db.session.commit()
+            
+            # Reload questions
+            easy_questions = Question.query.filter_by(is_active=True, difficulty_level='easy').limit(5).all()
+            medium_questions = Question.query.filter_by(is_active=True, difficulty_level='medium').limit(10).all()
+            hard_questions = Question.query.filter_by(is_active=True, difficulty_level='hard').limit(5).all()
+            all_questions = easy_questions + medium_questions + hard_questions
+        
+        # If still no questions, get any available questions
         if not all_questions:
             all_questions = Question.query.filter_by(is_active=True).limit(20).all()
         
@@ -90,9 +127,14 @@ def get_initial_assessment():
 @jwt_required()
 def submit_test():
     """Submit test answers and calculate score"""
+    print("=" * 50)
+    print("🔍 TEST SUBMISSION RECEIVED")
+    print("=" * 50)
     try:
         user_id = get_jwt_identity()
+        print(f"User ID: {user_id}")
         data = request.get_json()
+        print(f"Request data: {data}")
         
         if not data or not data.get('test_type') or not data.get('answers'):
             return jsonify({
@@ -103,14 +145,38 @@ def submit_test():
         test_type = data['test_type']
         answers = data['answers']  # List of {question_id, answer}
         time_taken = data.get('time_taken_minutes', 0)
+        course_id = data.get('course_id')  # Get course_id if provided
+        
+        # Convert IDs to UUID if they're strings
+        import uuid
+        try:
+            if isinstance(user_id, str):
+                user_id = uuid.UUID(user_id)
+            if course_id and isinstance(course_id, str):
+                course_id = uuid.UUID(course_id)
+        except (ValueError, AttributeError) as e:
+            print(f"UUID conversion error: {e}")
+            return jsonify({
+                'success': False,
+                'message': 'Invalid ID format'
+            }), 400
         
         # Calculate score
         total_questions = len(answers)
         correct_answers = 0
         
+        import uuid
         for answer_data in answers:
             question_id = answer_data.get('question_id')
             user_answer = answer_data.get('answer', '').strip()
+            
+            # Convert question_id to UUID if it's a string
+            try:
+                if isinstance(question_id, str):
+                    question_id = uuid.UUID(question_id)
+            except (ValueError, AttributeError):
+                print(f"Invalid question_id format: {question_id}")
+                continue
             
             question = Question.query.get(question_id)
             if question and question.correct_answer:
@@ -328,6 +394,10 @@ def submit_test():
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"❌ Test submission error: {str(e)}")
+        print(f"Full traceback:\n{error_trace}")
         return jsonify({
             'success': False,
             'message': f'Failed to submit test: {str(e)}'
@@ -752,14 +822,58 @@ def start_module_test():
                 'message': 'Module ID is required'
             }), 400
         
+        # Get module and course details to determine category
+        from models import CourseModule
+        module = CourseModule.query.get(module_id)
+        category = 'Programming'  # Default
+        
+        if module and module.course:
+            # Extract category from course title (e.g., "Python Basics" -> "Python")
+            course_title = module.course.title
+            category = course_title.split()[0] if course_title else 'Programming'
+            print(f"Extracted category from course: {category}")
+        
         # Get available questions for the test
         all_questions = Question.query.filter_by(is_active=True).all()
         
-        if not all_questions:
-            return jsonify({
-                'success': False,
-                'message': 'No questions available for this module'
-            }), 404
+        # If no questions available, generate them using AI
+        if not all_questions or len(all_questions) < 5:
+            print(f"Generating AI questions for category: {category}")
+            from ai_question_generator import ai_question_generator
+            
+            # Generate 10 questions (mix of difficulties)
+            difficulties = ['easy', 'easy', 'medium', 'medium', 'medium', 'medium', 'hard', 'hard', 'hard', 'hard']
+            for difficulty in difficulties:
+                try:
+                    question_data = ai_question_generator.generate_question(
+                        'multiple_choice', difficulty, category
+                    )
+                    
+                    new_question = Question(
+                        question_text=question_data['question_text'],
+                        question_type='multiple_choice',
+                        difficulty_level=difficulty,
+                        category=category,
+                        correct_answer=question_data.get('correct_answer'),
+                        options=question_data.get('options'),
+                        explanation=question_data.get('explanation'),
+                        is_active=True
+                    )
+                    db.session.add(new_question)
+                except Exception as gen_error:
+                    print(f"Error generating question: {gen_error}")
+                    continue
+            
+            db.session.commit()
+            
+            # Reload questions
+            all_questions = Question.query.filter_by(is_active=True).all()
+            
+            if not all_questions:
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to generate questions. Please try again.'
+                }), 500
         
         # Shuffle questions uniquely for each user
         import random
@@ -837,14 +951,57 @@ def start_final_test():
                 'message': 'Course ID is required'
             }), 400
         
+        # Get course details to determine category
+        course = Course.query.get(course_id)
+        category = 'Programming'  # Default
+        
+        if course:
+            # Extract category from course title (e.g., "AutoCAD Fundamentals" -> "AutoCAD")
+            course_title = course.title
+            category = course_title.split()[0] if course_title else 'Programming'
+            print(f"Extracted category from course: {category}")
+        
         # Get available questions for the final test
         all_questions = Question.query.filter_by(is_active=True).all()
         
-        if not all_questions:
-            return jsonify({
-                'success': False,
-                'message': 'No questions available for final test'
-            }), 404
+        # If no questions available, generate them using AI
+        if not all_questions or len(all_questions) < 15:
+            print(f"Generating AI questions for final test, category: {category}")
+            from ai_question_generator import ai_question_generator
+            
+            # Generate 20 questions (mix of difficulties)
+            difficulties = ['easy'] * 5 + ['medium'] * 10 + ['hard'] * 5
+            for difficulty in difficulties:
+                try:
+                    question_data = ai_question_generator.generate_question(
+                        'multiple_choice', difficulty, category
+                    )
+                    
+                    new_question = Question(
+                        question_text=question_data['question_text'],
+                        question_type='multiple_choice',
+                        difficulty_level=difficulty,
+                        category=category,
+                        correct_answer=question_data.get('correct_answer'),
+                        options=question_data.get('options'),
+                        explanation=question_data.get('explanation'),
+                        is_active=True
+                    )
+                    db.session.add(new_question)
+                except Exception as gen_error:
+                    print(f"Error generating question: {gen_error}")
+                    continue
+            
+            db.session.commit()
+            
+            # Reload questions
+            all_questions = Question.query.filter_by(is_active=True).all()
+            
+            if not all_questions:
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to generate questions. Please try again.'
+                }), 500
         
         # Shuffle questions uniquely for each user - 15 questions for final test
         import random
@@ -1018,8 +1175,8 @@ def complete_test():
         certificate_generated = False
         certificate_data = None
         
-        # Generate certificate for final tests with 60%+ score
-        if test_type in ['course_final', 'final'] and score_percentage >= 60.0 and course_id:
+        # Generate certificate for final tests with 75%+ score (certificate eligibility)
+        if test_type in ['course_final', 'final'] and score_percentage >= 75.0 and course_id:
             try:
                 user = User.query.get(user_id)
                 course = Course.query.get(course_id)
@@ -1105,9 +1262,10 @@ def complete_test():
             'passed': passed,
             'test_type': test_type,
             'pass_threshold': 60.0,
+            'certificate_threshold': 75.0,
             'certificate_generated': certificate_generated,
             'certificate_data': certificate_data,
-            'message': f'Test completed. Score: {round(score_percentage, 1)}%. {"PASSED" if passed else "FAILED - Need 60% to pass"}'
+            'message': f'Test completed. Score: {round(score_percentage, 1)}%. {"PASSED" if passed else "FAILED - Need 60% to pass"}. {"Certificate issued!" if certificate_generated else "Need 75% for certificate." if passed else ""}'
         }
         
         return jsonify({
@@ -1383,4 +1541,45 @@ def get_supported_languages():
         return jsonify({
             'success': False,
             'message': f'Failed to get supported languages: {str(e)}'
+        }), 500
+
+@tests_bp.route('/test-code', methods=['POST'])
+@jwt_required()
+def test_code_compilation():
+    """Test code compilation and syntax without running full evaluation"""
+    try:
+        data = request.get_json()
+        code = data.get('code', '')
+        language = data.get('language', 'python')
+        
+        if not code or not code.strip():
+            return jsonify({
+                'success': False,
+                'message': 'Code is required',
+                'output': 'Error: Empty code submission'
+            }), 400
+        
+        from ai_code_evaluator import ai_code_evaluator
+        
+        # Validate code syntax
+        validation_result = ai_code_evaluator._validate_code(code, language)
+        
+        if not validation_result['valid']:
+            return jsonify({
+                'success': False,
+                'message': 'Code validation failed',
+                'output': f'Compilation Error:\n{validation_result["error"]}'
+            }), 200
+        
+        return jsonify({
+            'success': True,
+            'message': 'Code syntax is valid',
+            'output': f'✅ {language.upper()} code syntax check passed!\n\nYour code will be evaluated against test cases when you submit.'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Code test failed: {str(e)}',
+            'output': f'Error: {str(e)}'
         }), 500

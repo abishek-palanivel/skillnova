@@ -7,7 +7,13 @@ from models import db, User, ChatRoom, ChatMessage, MentorProfile
 
 chat_bp = Blueprint('chat', __name__)
 
-
+@chat_bp.route('/test', methods=['GET'])
+def test_chat_route():
+    """Test route to verify chat blueprint is working"""
+    return jsonify({
+        'success': True,
+        'message': 'Chat routes are working!'
+    }), 200
 
 @chat_bp.route('/rooms', methods=['GET'])
 @jwt_required()
@@ -112,14 +118,33 @@ def get_user_chat_rooms():
 @jwt_required()
 def create_chat_room():
     """Create a new chat room - supports all user types communicating with each other"""
+    print("=== CHAT ROOM CREATION ATTEMPT ===")
     try:
         user_id = get_jwt_identity()
-        data = request.get_json()
+        print(f"Current user ID: {user_id}")
+        
+        # Handle both JSON and form data, or empty body
+        try:
+            data = request.get_json(force=True) or {}
+        except:
+            data = {}
+        
+        print(f"Request data: {data}")
+        
+        if not data:
+            print("❌ No request data")
+            return jsonify({
+                'success': False,
+                'message': 'Request data is required'
+            }), 400
         
         target_user_id = data.get('target_user_id')
         title = data.get('title', '')
         
+        print(f"Target user ID: {target_user_id}")
+        
         if not target_user_id:
+            print("❌ No target user ID")
             return jsonify({
                 'success': False,
                 'message': 'Target user ID is required'
@@ -127,21 +152,26 @@ def create_chat_room():
         
         # Convert string IDs to UUID if needed
         try:
+            import uuid
             if isinstance(user_id, str):
                 user_id = uuid.UUID(user_id)
             if isinstance(target_user_id, str):
                 target_user_id = uuid.UUID(target_user_id)
-        except ValueError:
+        except ValueError as ve:
             return jsonify({
                 'success': False,
-                'message': 'Invalid ID format'
+                'message': f'Invalid ID format: {str(ve)}'
             }), 400
         
         # Validate users
         current_user = User.query.get(user_id)
         target_user = User.query.get(target_user_id)
         
+        print(f"Current user found: {current_user is not None}")
+        print(f"Target user found: {target_user is not None}")
+        
         if not current_user or not target_user:
+            print(f"❌ User not found - current: {current_user}, target: {target_user}")
             return jsonify({
                 'success': False,
                 'message': 'User not found'
@@ -254,7 +284,10 @@ def create_chat_room():
         
     except Exception as e:
         db.session.rollback()
-
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"❌ Chat room creation error: {str(e)}")
+        print(f"Full traceback:\n{error_trace}")
         return jsonify({
             'success': False,
             'message': f'Failed to create chat room: {str(e)}'

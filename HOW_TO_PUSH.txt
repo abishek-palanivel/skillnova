@@ -1,0 +1,85 @@
+================================================================================
+                    SKILLNOVA - PUSH TO GITHUB GUIDE
+================================================================================
+
+Your Repository: https://github.com/abishek-palanivel/skillnova
+
+================================================================================
+STEP 1: ADD ALL FILES
+================================================================================
+
+git add .
+
+================================================================================
+STEP 2: COMMIT CHANGES
+================================================================================
+
+git commit -m "feat: Universal AI-powered learning platform v3.0.0 - Added AI question generation for ALL topics - Auto-generation in tests and practice - Fixed Gemini API with graceful fallback - Multi-language code evaluation - Personalized certificates - Complete documentation"
+
+================================================================================
+STEP 3: PUSH TO GITHUB
+================================================================================
+
+git push origin main
+
+================================================================================
+IF YOU GET "FAILED TO PUSH" ERROR
+================================================================================
+
+git pull origin main --rebase
+git push origin main
+
+================================================================================
+AFTER PUSHING - UPDATE GITHUB REPOSITORY
+================================================================================
+
+1. Go to: https://github.com/abishek-palanivel/skillnova
+
+2. Click "Settings" → Add description:
+   "Universal AI-powered learning platform supporting ANY topic with 
+    auto-generated questions, courses, and certificates"
+
+3. Add topics (click gear icon):
+   ai, education, react, flask, postgresql, gemini-ai, learning-platform,
+   autocad, photoshop, programming, code-evaluation, certificates
+
+4. Enable "Issues" and "Discussions" (optional)
+
+================================================================================
+WHAT'S BEING PUSHED
+================================================================================
+
+✅ Frontend (React app)
+✅ Backend (Flask API)
+✅ Database schemas
+✅ AI services (question generation, course generation, etc.)
+✅ Documentation (README, AI guides)
+✅ Configuration files (.env.example, .gitignore)
+✅ Utility scripts (start_backend.bat, start_frontend.bat)
+
+❌ NOT pushed (in .gitignore):
+   - .env (contains API keys)
+   - node_modules/
+   - __pycache__/
+   - certificates/*.pdf
+
+================================================================================
+VERIFICATION
+================================================================================
+
+After pushing, check:
+- Repository shows all files
+- README displays correctly
+- No .env file visible (should be hidden)
+- All documentation is readable
+
+================================================================================
+NEED HELP?
+================================================================================
+
+Email: abishekopennova@gmail.com
+LinkedIn: https://www.linkedin.com/in/abishek-p-9ab80a326
+
+================================================================================
+                            READY TO PUSH! 🚀
+================================================================================

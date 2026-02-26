@@ -162,7 +162,7 @@ const Practice = () => {
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                     <div className="flex items-center space-x-1">
                       <Clock className="w-4 h-4" />
-                      <span>~30 min</span>
+                      <span>~5 min</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Trophy className="w-4 h-4" />

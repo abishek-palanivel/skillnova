@@ -173,10 +173,21 @@ const AssessmentTaking = () => {
 
   const handleNextQuestion = () => {
     const currentQuestionId = questions[currentQuestion]?.id;
+    const currentQuestionType = questions[currentQuestion]?.question_type;
     
     // Strong validation - prevent proceeding without an answer
     if (!currentQuestionId || !answers[currentQuestionId] || answers[currentQuestionId] === '') {
-      toast.error('Please select an answer before proceeding to the next question');
+      const questionTypeText = currentQuestionType === 'essay' ? 'write an answer' : 
+                               currentQuestionType === 'coding' ? 'write code' : 
+                               'select an answer';
+      toast.error(`Please ${questionTypeText} before proceeding to the next question`);
+      return;
+    }
+    
+    // For essay and coding questions, check minimum length
+    if ((currentQuestionType === 'essay' || currentQuestionType === 'coding') && 
+        answers[currentQuestionId].trim().length < 10) {
+      toast.error('Please provide a more detailed answer (at least 10 characters)');
       return;
     }
     
@@ -666,8 +677,19 @@ const AssessmentTaking = () => {
             </h2>
           </div>
 
+          {/* Debug: Show question data */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mb-4 p-2 bg-gray-100 text-xs">
+              <div>Question Type: {question?.question_type}</div>
+              <div>Has Options: {question?.options ? 'Yes' : 'No'}</div>
+              <div>Is Array: {Array.isArray(question?.options) ? 'Yes' : 'No'}</div>
+              <div>Options Length: {question?.options?.length || 0}</div>
+              <div>Options: {JSON.stringify(question?.options)}</div>
+            </div>
+          )}
+
           {/* Answer Options */}
-          {question?.question_type === 'multiple_choice' && question?.options && Array.isArray(question.options) && (
+          {question?.question_type === 'multiple_choice' && question?.options && Array.isArray(question.options) && question.options.length > 0 && (
             <div className="space-y-3">
               {question.options.map((option, index) => (
                 <label
@@ -701,10 +723,50 @@ const AssessmentTaking = () => {
             </div>
           )}
           
-          {question?.question_type === 'multiple_choice' && (!question?.options || !Array.isArray(question.options)) && (
+          {question?.question_type === 'multiple_choice' && (!question?.options || !Array.isArray(question.options) || question.options.length === 0) && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800">Error: Question options not properly loaded</p>
+              <p className="text-red-800">⚠️ Error: Question options not properly loaded</p>
+              <p className="text-red-600 text-sm mt-1">Question ID: {question?.id}</p>
               <p className="text-red-600 text-sm mt-1">Options data: {JSON.stringify(question?.options)}</p>
+              <p className="text-gray-600 text-sm mt-2">Please contact support or try refreshing the page.</p>
+            </div>
+          )}
+
+          {/* Essay Question */}
+          {question?.question_type === 'essay' && (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Answer:
+              </label>
+              <textarea
+                value={answers[question.id] || ''}
+                onChange={(e) => handleAnswerSelect(question.id, e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows="6"
+                placeholder="Type your answer here..."
+              />
+              <p className="text-sm text-gray-500">
+                Minimum 50 characters recommended for a complete answer.
+              </p>
+            </div>
+          )}
+
+          {/* Coding Question */}
+          {question?.question_type === 'coding' && (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Your Code:
+              </label>
+              <textarea
+                value={answers[question.id] || ''}
+                onChange={(e) => handleAnswerSelect(question.id, e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                rows="10"
+                placeholder="// Write your code here..."
+              />
+              <p className="text-sm text-gray-500">
+                Write clean, well-commented code that solves the problem.
+              </p>
             </div>
           )}
         </div>
@@ -715,7 +777,9 @@ const AssessmentTaking = () => {
             <div className="flex items-center">
               <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
               <p className="text-sm font-medium text-red-800">
-                You must select an answer before proceeding to the next question
+                {questions[currentQuestion]?.question_type === 'essay' && 'You must write an answer before proceeding to the next question'}
+                {questions[currentQuestion]?.question_type === 'coding' && 'You must write code before proceeding to the next question'}
+                {questions[currentQuestion]?.question_type === 'multiple_choice' && 'You must select an answer before proceeding to the next question'}
               </p>
             </div>
           </div>

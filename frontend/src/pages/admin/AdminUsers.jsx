@@ -23,6 +23,9 @@ const AdminUsers = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
+  const [showScholarshipModal, setShowScholarshipModal] = useState(false);
+  const [showInternshipModal, setShowInternshipModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -64,35 +67,38 @@ const AdminUsers = () => {
     }
   };
 
-  const sendScholarshipEmail = async (userId, userName, userEmail) => {
+  const openScholarshipModal = (user) => {
+    setSelectedUser(user);
+    setShowScholarshipModal(true);
+  };
+
+  const openInternshipModal = (user) => {
+    setSelectedUser(user);
+    setShowInternshipModal(true);
+  };
+
+  const sendScholarshipEmail = async (scholarshipData) => {
     try {
-      const response = await api.post(`/admin/users/${userId}/send-scholarship`, {
-        amount: 'Full Coverage',
-        duration: '6 months',
-        coverage: 'All courses and mentorship',
-        start_date: 'Immediate'
-      });
+      const response = await api.post(`/admin/users/${selectedUser.id}/send-scholarship`, scholarshipData);
       
       if (response.data.success) {
-        toast.success(`🎓 Scholarship offer sent to ${userName} (${userEmail})`);
+        toast.success(`🎓 Scholarship offer sent to ${selectedUser.name} (${selectedUser.email})`);
+        setShowScholarshipModal(false);
+        setSelectedUser(null);
       }
     } catch (error) {
       toast.error('Failed to send scholarship email');
     }
   };
 
-  const sendInternshipEmail = async (userId, userName, userEmail) => {
+  const sendInternshipEmail = async (internshipData) => {
     try {
-      const response = await api.post(`/admin/users/${userId}/send-internship`, {
-        position: 'Software Development Intern',
-        duration: '3-6 months',
-        stipend: 'Competitive',
-        location: 'Remote/Hybrid',
-        start_date: 'Flexible'
-      });
+      const response = await api.post(`/admin/users/${selectedUser.id}/send-internship`, internshipData);
       
       if (response.data.success) {
-        toast.success(`💼 Internship offer sent to ${userName} (${userEmail})`);
+        toast.success(`💼 Internship offer sent to ${selectedUser.name} (${selectedUser.email})`);
+        setShowInternshipModal(false);
+        setSelectedUser(null);
       }
     } catch (error) {
       toast.error('Failed to send internship email');
@@ -310,14 +316,14 @@ const AdminUsers = () => {
                           {/* Email Actions */}
                           <div className="flex space-x-1">
                             <button
-                              onClick={() => sendScholarshipEmail(user.id, user.name, user.email)}
+                              onClick={() => openScholarshipModal(user)}
                               className="px-2 py-1 text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 rounded"
                               title="Send Scholarship Offer"
                             >
                               🎓 Scholarship
                             </button>
                             <button
-                              onClick={() => sendInternshipEmail(user.id, user.name, user.email)}
+                              onClick={() => openInternshipModal(user)}
                               className="px-2 py-1 text-xs bg-orange-100 text-orange-700 hover:bg-orange-200 rounded"
                               title="Send Internship Offer"
                             >
@@ -406,6 +412,183 @@ const AdminUsers = () => {
                 : 'No users have registered yet'
               }
             </p>
+          </div>
+        )}
+
+        {/* Scholarship Modal */}
+        {showScholarshipModal && selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold mb-4">🎓 Send Scholarship Offer</h3>
+              <p className="text-gray-600 mb-4">
+                Sending scholarship offer to: <strong>{selectedUser.name}</strong> ({selectedUser.email})
+              </p>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                sendScholarshipEmail({
+                  amount: formData.get('amount'),
+                  duration: formData.get('duration'),
+                  coverage: formData.get('coverage'),
+                  start_date: formData.get('start_date')
+                });
+              }}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <input
+                      type="text"
+                      name="amount"
+                      defaultValue="Full Coverage"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                    <input
+                      type="text"
+                      name="duration"
+                      defaultValue="6 months"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Coverage</label>
+                    <input
+                      type="text"
+                      name="coverage"
+                      defaultValue="All courses and mentorship"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                    <input
+                      type="text"
+                      name="start_date"
+                      defaultValue="Immediate"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex space-x-3 mt-6">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+                  >
+                    Send Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowScholarshipModal(false);
+                      setSelectedUser(null);
+                    }}
+                    className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Internship Modal */}
+        {showInternshipModal && selectedUser && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold mb-4">💼 Send Internship Offer</h3>
+              <p className="text-gray-600 mb-4">
+                Sending internship offer to: <strong>{selectedUser.name}</strong> ({selectedUser.email})
+              </p>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                sendInternshipEmail({
+                  position: formData.get('position'),
+                  duration: formData.get('duration'),
+                  stipend: formData.get('stipend'),
+                  location: formData.get('location'),
+                  start_date: formData.get('start_date')
+                });
+              }}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
+                    <input
+                      type="text"
+                      name="position"
+                      defaultValue="Software Development Intern"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                    <input
+                      type="text"
+                      name="duration"
+                      defaultValue="3-6 months"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Stipend</label>
+                    <input
+                      type="text"
+                      name="stipend"
+                      defaultValue="Competitive"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <input
+                      type="text"
+                      name="location"
+                      defaultValue="Remote/Hybrid"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                    <input
+                      type="text"
+                      name="start_date"
+                      defaultValue="Flexible"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex space-x-3 mt-6">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700"
+                  >
+                    Send Email
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInternshipModal(false);
+                      setSelectedUser(null);
+                    }}
+                    className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>

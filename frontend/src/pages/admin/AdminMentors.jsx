@@ -47,7 +47,9 @@ const AdminMentors = () => {
       }
     } catch (error) {
       console.error('Failed to fetch mentors:', error);
-      toast.error('Failed to load mentors');
+      const errorMsg = error.response?.data?.message || 'Failed to load mentors. Please check database connection.';
+      toast.error(errorMsg);
+      setMentors([]);
     } finally {
       setLoading(false);
     }
@@ -104,11 +106,11 @@ const AdminMentors = () => {
     setShowAddForm(true);
   };
 
-  const handleDelete = async (mentorUserId) => {
+  const handleDelete = async (mentorId) => {
     if (!window.confirm('Are you sure you want to remove this mentor? This will deactivate their account.')) return;
     
     try {
-      const response = await api.delete(`/admin/mentors/${mentorUserId}`);
+      const response = await api.delete(`/admin/mentors/${mentorId}`);
       if (response.data.success) {
         toast.success('Mentor removed successfully');
         fetchMentors();
@@ -215,16 +217,15 @@ const AdminMentors = () => {
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg border border-indigo-200 p-4 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center space-x-3">
-              <Star className="w-8 h-8 text-yellow-600" />
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg">
+                <Award className="w-6 h-6 text-white" />
+              </div>
               <div>
-                <p className="text-sm text-gray-600">Avg Rating</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {mentors.length > 0 ? 
-                    (mentors.reduce((sum, m) => sum + (m.rating || 0), 0) / mentors.length).toFixed(1) : 
-                    '0.0'
-                  }
+                <p className="text-sm font-semibold text-indigo-700">Active Mentors</p>
+                <p className="text-2xl font-bold text-indigo-900">
+                  {mentors.filter(m => m.is_available).length}
                 </p>
               </div>
             </div>
@@ -276,7 +277,7 @@ const AdminMentors = () => {
                     Experience
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rating
+                    Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -310,9 +311,12 @@ const AdminMentors = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current mr-1" />
-                        <span className="text-sm text-gray-900">
-                          {mentor.rating ? mentor.rating.toFixed(1) : '0.0'}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          mentor.is_available 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {mentor.is_available ? '🟢 Active' : '🔴 Inactive'}
                         </span>
                       </div>
                     </td>
@@ -337,7 +341,7 @@ const AdminMentors = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(mentor.user_id)}
+                          onClick={() => handleDelete(mentor.id)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <Trash2 className="w-4 h-4" />

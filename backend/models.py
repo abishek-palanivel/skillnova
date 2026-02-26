@@ -63,11 +63,21 @@ class Course(db.Model):
     skill_level = db.Column(db.String(50), nullable=False)  # Beginner, Intermediate, Advanced
     duration_weeks = db.Column(db.Integer)
     is_active = db.Column(db.Boolean, default=True)
+    
+    # Cost system (replacing rating)
+    cost = db.Column(db.Numeric(10, 2), default=0.00)
+    is_locked = db.Column(db.Boolean, default=False)
+    
+    # Keep rating fields for backward compatibility but deprecate them
+    average_rating = db.Column(db.Float, default=0.0)
+    total_ratings = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
     enrollments = db.relationship('CourseEnrollment', backref='course', cascade='all, delete-orphan')
     modules = db.relationship('CourseModule', backref='course', cascade='all, delete-orphan')
+    ratings = db.relationship('CourseRating', backref='course', cascade='all, delete-orphan')
+    final_projects = db.relationship('CourseFinalProject', backref='course', cascade='all, delete-orphan')
 
 class CourseModule(db.Model):
     __tablename__ = 'course_modules'
@@ -89,6 +99,21 @@ class CourseEnrollment(db.Model):
     completed_at = db.Column(db.DateTime)
     progress_percentage = db.Column(db.Float, default=0.0)
     status = db.Column(db.String(50), default='active')  # active, completed, dropped
+    
+    # Final project completion tracking
+    final_project_completion_percentage = db.Column(db.Float, default=0.0)
+    course_unlocked = db.Column(db.Boolean, default=True)  # FALSE if final project < 75%
+
+class CourseRating(db.Model):
+    __tablename__ = 'course_ratings'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    course_id = db.Column(UUID(as_uuid=True), db.ForeignKey('courses.id'), nullable=False)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    review = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class Mentor(db.Model):
     __tablename__ = 'mentors'
@@ -103,7 +128,13 @@ class Mentor(db.Model):
     phone = db.Column(db.String(20))
     linkedin = db.Column(db.String(255))
     github = db.Column(db.String(255))
+    hourly_rate = db.Column(db.Float, default=0.0)  # hourly rate for sessions
     is_available = db.Column(db.Boolean, default=True)
+    
+    # Cost system (replacing rating)
+    session_cost = db.Column(db.Numeric(10, 2), default=0.00)  # Fixed session cost
+    
+    # Keep rating fields for backward compatibility but deprecate them
     rating = db.Column(db.Float, default=0.0)
     total_sessions = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -403,3 +434,39 @@ class Notification(db.Model):
     
     # Relationships
     user = db.relationship('User', backref='notifications')
+
+class CourseFinalProject(db.Model):
+    __tablename__ = 'course_final_projects'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    course_id = db.Column(UUID(as_uuid=True), db.ForeignKey('courses.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    requirements = db.Column(db.Text)
+    passing_percentage = db.Column(db.Float, default=75.0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    submissions = db.relationship('UserFinalProjectSubmission', backref='final_project', cascade='all, delete-orphan')
+
+class UserFinalProjectSubmission(db.Model):
+    __tablename__ = 'user_final_project_submissions'
+    
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'), nullable=False)
+    course_id = db.Column(UUID(as_uuid=True), db.ForeignKey('courses.id'), nullable=False)
+    final_project_id = db.Column(UUID(as_uuid=True), db.ForeignKey('course_final_projects.id'), nullable=False)
+    submission_data = db.Column(db.JSON)  # Store project files, code, etc.
+    completion_percentage = db.Column(db.Float, default=0.0)
+    mentor_feedback = db.Column(db.Text)
+    mentor_score = db.Column(db.Float)
+    status = db.Column(db.String(50), default='in_progress')  # in_progress, submitted, reviewed, completed, failed
+    submitted_at = db.Column(db.DateTime)
+    reviewed_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='final_project_submissions')
+    course = db.relationship('Course', backref='final_project_submissions')

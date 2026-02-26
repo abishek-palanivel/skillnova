@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AI Code Evaluator Service
+AI Code Evaluator Service with Google Gemini Integration (FREE)
 This service evaluates coding submissions using AI and test cases
 """
 
@@ -11,6 +11,7 @@ import tempfile
 import os
 from typing import Dict, List, Any, Tuple
 from datetime import datetime
+from openai_service import gemini_service
 
 class AICodeEvaluator:
     """AI-powered code evaluator for multiple programming languages"""
@@ -414,7 +415,61 @@ class AICodeEvaluator:
         return False
     
     def _analyze_code_quality(self, code: str, language: str, question_text: str) -> Dict[str, Any]:
-        """Analyze code quality using AI-like heuristics"""
+        """Analyze code quality using Google Gemini or heuristics"""
+        try:
+            # Try Gemini AI analysis first
+            if os.getenv('GEMINI_API_KEY'):
+                ai_analysis = self._analyze_with_openai(code, language, question_text)
+                if ai_analysis:
+                    return ai_analysis
+            
+            # Fallback to heuristic analysis
+            return self._analyze_with_heuristics(code, language)
+        except Exception as e:
+            print(f"Code quality analysis error: {e}")
+            return self._analyze_with_heuristics(code, language)
+    
+    def _analyze_with_openai(self, code: str, language: str, question_text: str) -> Dict[str, Any]:
+        """Use Google Gemini to analyze code quality"""
+        try:
+            prompt = f"""Analyze this {language} code for quality:
+
+Question: {question_text}
+
+Code:
+```{language}
+{code}
+```
+
+Provide a JSON response with:
+- readability_score: 0-100 (code clarity, naming, structure)
+- efficiency_score: 0-100 (algorithm efficiency, performance)
+- best_practices_score: 0-100 (follows language conventions)
+- overall_score: 0-100 (average of above)
+- comments: array of 2-4 specific feedback points (both positive and areas for improvement)
+
+Be constructive and educational. Format: {{"readability_score": 85, "efficiency_score": 75, ...}}"""
+
+            system_message = f"You are an expert {language} code reviewer. Provide constructive feedback. Always respond with valid JSON."
+            
+            result = gemini_service.generate_json_completion(prompt, system_message, temperature=0.5)
+            
+            if result:
+                return {
+                    'readability_score': min(100, max(0, result.get('readability_score', 70))),
+                    'efficiency_score': min(100, max(0, result.get('efficiency_score', 70))),
+                    'best_practices_score': min(100, max(0, result.get('best_practices_score', 70))),
+                    'overall_score': min(100, max(0, result.get('overall_score', 70))),
+                    'comments': result.get('comments', [])
+                }
+            
+            return None
+        except Exception as e:
+            print(f"OpenAI code analysis error: {e}")
+            return None
+    
+    def _analyze_with_heuristics(self, code: str, language: str) -> Dict[str, Any]:
+        """Fallback heuristic-based analysis"""
         try:
             analysis = {
                 'readability_score': 0,

@@ -31,11 +31,13 @@ const AdminManageMentors = () => {
     try {
       const response = await api.get('/admin/mentors');
       if (response.data.success) {
-        setMentors(response.data.mentors);
+        setMentors(response.data.mentors || []);
       }
     } catch (error) {
       console.error('Failed to fetch mentors:', error);
-      toast.error('Failed to load mentors');
+      const errorMsg = error.response?.data?.message || 'Failed to load mentors. Please check database connection.';
+      toast.error(errorMsg);
+      setMentors([]);
     } finally {
       setLoading(false);
     }
@@ -232,6 +234,25 @@ const AdminManageMentors = () => {
               ))}
             </tbody>
           </table>
+          
+          {mentors.length === 0 && (
+            <div className="text-center py-12 bg-gray-50">
+              <div className="text-gray-400 mb-4">
+                <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No mentors yet</h3>
+              <p className="text-gray-600 mb-4">Get started by adding your first mentor to the platform.</p>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add First Mentor
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Add Mentor Modal */}

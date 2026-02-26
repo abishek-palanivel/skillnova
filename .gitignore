@@ -43,7 +43,7 @@ yarn-error.log*
 .npm
 .eslintcache
 
-# Environment variables
+# Environment variables (IMPORTANT: Keep .env private!)
 .env
 .env.local
 .env.development.local
@@ -116,15 +116,16 @@ jspm_packages/
 ehthumbs.db
 Thumbs.db
 
-# Certificates (if not needed)
-certificates/
+# Certificates (generated at runtime)
+certificates/*.pdf
 
 # Build outputs
 build/
 dist/
 
-# Test files (temporary)
+# Test files (keep test_autocad_questions.py for documentation)
 test_*.py
+!test_autocad_questions.py
 *_test.py
 
 # Temporary migration files
@@ -139,10 +140,19 @@ database/migration_*.sql
 *_DESIGN.md
 *_REQUIREMENTS.md
 
-# Redundant documentation
+# Redundant documentation (keep AI fix docs)
 WEEKLY_EVALUATION_SYSTEM.md
 IMPLEMENTATION_SUMMARY.md
+COST_SYSTEM_GUIDE.md
+IMPLEMENTATION_COMPLETE.md
+CHANGES_SUMMARY.md
+FINAL_CHECKLIST.md
+UPDATE_SUMMARY.txt
+VISUAL_GUIDE.md
+QUICK_START_AFTER_UPDATE.md
 
 # Migration scripts (after implementation)
 *migrate*.py
 *migration*.py
+setup_*.py
+check_*.py

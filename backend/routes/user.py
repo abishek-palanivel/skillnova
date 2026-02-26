@@ -171,24 +171,63 @@ def get_dashboard():
             'recent_activities': []
         }
         
-        # Add recent activities
-        if assessments:
-            latest_assessment = max(assessments, key=lambda x: x.completed_at)
-            dashboard_data['recent_activities'].append({
+        # Add recent activities - get all activities and sort by date
+        activities = []
+        
+        # Add assessments
+        for assessment in assessments:
+            activities.append({
                 'type': 'assessment',
-                'description': f'Completed {latest_assessment.assessment_type} assessment',
-                'score': latest_assessment.score_percentage,
-                'date': latest_assessment.completed_at.isoformat()
+                'description': f'Completed {assessment.assessment_type} assessment with {assessment.score_percentage}% score',
+                'score': assessment.score_percentage,
+                'date': assessment.completed_at,
+                'date_iso': assessment.completed_at.isoformat()
             })
         
-        if enrollments:
-            latest_enrollment = max(enrollments, key=lambda x: x.enrolled_at)
-            dashboard_data['recent_activities'].append({
+        # Add enrollments
+        for enrollment in enrollments:
+            activities.append({
                 'type': 'enrollment',
-                'description': f'Enrolled in {latest_enrollment.course.title}',
-                'progress': latest_enrollment.progress_percentage,
-                'date': latest_enrollment.enrolled_at.isoformat()
+                'description': f'Enrolled in {enrollment.course.title}',
+                'progress': enrollment.progress_percentage,
+                'date': enrollment.enrolled_at,
+                'date_iso': enrollment.enrolled_at.isoformat()
             })
+        
+        # Add test results
+        from models import TestResult
+        test_results = TestResult.query.filter_by(user_id=user_id).order_by(TestResult.completed_at.desc()).limit(5).all()
+        for test in test_results:
+            activities.append({
+                'type': 'test',
+                'description': f'Completed test with {test.score_percentage}% score',
+                'score': test.score_percentage,
+                'date': test.completed_at,
+                'date_iso': test.completed_at.isoformat()
+            })
+        
+        # Add mentor sessions
+        from models import MentorSession
+        sessions = MentorSession.query.filter_by(user_id=user_id).order_by(MentorSession.created_at.desc()).limit(5).all()
+        for session in sessions:
+            activities.append({
+                'type': 'session',
+                'description': f'Booked session with mentor',
+                'status': session.status,
+                'date': session.created_at,
+                'date_iso': session.created_at.isoformat()
+            })
+        
+        # Sort by date and get latest 10
+        activities.sort(key=lambda x: x['date'], reverse=True)
+        dashboard_data['recent_activities'] = [
+            {
+                'description': activity['description'],
+                'date': activity['date_iso'],
+                'type': activity['type']
+            }
+            for activity in activities[:10]
+        ]
         
         return jsonify({
             'success': True,

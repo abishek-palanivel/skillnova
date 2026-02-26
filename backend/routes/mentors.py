@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 
-from models import db, Mentor, MentorSession
+from models import db, Mentor, MentorSession, User
 
 mentors_bp = Blueprint('mentors', __name__)
 
@@ -13,19 +13,53 @@ def get_mentors():
         return '', 200
     
     try:
-        mentors = Mentor.query.filter_by(is_available=True).all()
+        # Get all active users who are mentors
+        mentor_users = User.query.filter(
+            User.is_mentor == True,
+            User.is_active == True
+        ).all()
         
         mentors_data = []
-        for mentor in mentors:
+        for user in mentor_users:
+            # Check if mentor has a profile in mentors table
+            mentor_profile = Mentor.query.filter_by(user_id=user.id).first()
+            
+            # Calculate sessions completed
+            sessions_completed = MentorSession.query.filter_by(
+                mentor_id=mentor_profile.id if mentor_profile else None,
+                status='completed'
+            ).count() if mentor_profile else 0
+            
+            # Get mentor details from profile or use defaults
+            if mentor_profile:
+                expertise = mentor_profile.expertise or 'General Mentoring'
+                experience_years = mentor_profile.experience_years or 0
+                hourly_rate = float(mentor_profile.hourly_rate) if mentor_profile.hourly_rate else 0.0
+                session_cost = float(mentor_profile.session_cost) if mentor_profile.session_cost else 0.0
+                is_available = mentor_profile.is_available
+                mentor_id = str(mentor_profile.id)
+            else:
+                # Create default mentor profile if not exists
+                expertise = 'General Mentoring'
+                experience_years = 0
+                hourly_rate = 0.0
+                session_cost = 0.0
+                is_available = True
+                mentor_id = str(user.id)
+            
             mentors_data.append({
-                'id': str(mentor.id),
-                'name': mentor.name,
-                'email': mentor.email,
-                'expertise': mentor.expertise,
-                'experience_years': mentor.experience_years,
-                'rating': mentor.rating,
-                'total_sessions': len(mentor.sessions),
-                'created_at': mentor.created_at.isoformat()
+                'id': mentor_id,
+                'user_id': str(user.id),
+                'name': user.name,
+                'email': user.email,
+                'expertise': expertise,
+                'experience_years': experience_years,
+                'hourly_rate': hourly_rate,
+                'session_cost': session_cost,
+                'sessions_completed': sessions_completed,
+                'is_available': is_available,
+                'availability': 'Available' if is_available else 'Busy',
+                'created_at': user.created_at.isoformat() if user.created_at else ''
             })
         
         return jsonify({
@@ -34,10 +68,14 @@ def get_mentors():
         }), 200
         
     except Exception as e:
+        print(f"Error in get_mentors: {str(e)}")  # Debug logging
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
-            'message': f'Failed to get mentors: {str(e)}'
-        }), 500
+            'message': f'Failed to get mentors: {str(e)}',
+            'mentors': []  # Return empty array as fallback
+        }), 200  # Return 200 instead of 500 to prevent frontend errors
 
 @mentors_bp.route('/<mentor_id>/book-session', methods=['POST'])
 @jwt_required()
@@ -45,14 +83,32 @@ def book_mentor_session(mentor_id):
     """Book a session with a specific mentor"""
     try:
         user_id = get_jwt_identity()
-        data = request.get_json() or {}
         
-        # Check if mentor exists and is available
-        mentor = Mentor.query.get(mentor_id)
-        if not mentor or not mentor.is_available:
+        # Handle both JSON and form data, or empty body
+        try:
+            data = request.get_json(force=True) or {}
+        except:
+            data = {}
+        
+        # Convert string IDs to UUID if needed
+        try:
+            import uuid
+            if isinstance(user_id, str):
+                user_id = uuid.UUID(user_id)
+            if isinstance(mentor_id, str):
+                mentor_id = uuid.UUID(mentor_id)
+        except ValueError as ve:
             return jsonify({
                 'success': False,
-                'message': 'Mentor not found or unavailable'
+                'message': 'Invalid ID format'
+            }), 400
+        
+        # Check if mentor exists
+        mentor = Mentor.query.get(mentor_id)
+        if not mentor:
+            return jsonify({
+                'success': False,
+                'message': 'Mentor not found'
             }), 404
         
         # For demo purposes, create a session with default scheduling
@@ -65,15 +121,56 @@ def book_mentor_session(mentor_id):
             user_id=user_id,
             mentor_id=mentor_id,
             scheduled_at=scheduled_at,
-            duration_minutes=duration_minutes
+            duration_minutes=duration_minutes,
+            status='scheduled'
         )
         
         db.session.add(session)
         db.session.commit()
         
+        # Send notification and email (optional - don't fail if this fails)
+        try:
+            from models import User
+            student = User.query.get(user_id)
+            
+            # Send in-app notification
+            if mentor.user_id:
+                from notification_service import notification_service
+                notification_service.create_notification(
+                    user_id=mentor.user_id,
+                    title='New Session Booking',
+                    message=f'{student.name if student else "A student"} has booked a session with you',
+                    notification_type='session_booking',
+                    related_id=str(session.id)
+                )
+            
+            # Send email notifications
+            from email_service import email_service
+            session_details = {
+                'scheduled_at': session.scheduled_at.strftime('%B %d, %Y at %I:%M %p'),
+                'duration_minutes': session.duration_minutes,
+                'session_id': str(session.id)
+            }
+            
+            email_result = email_service.send_session_booking_email(
+                student_name=student.name if student else "Student",
+                student_email=student.email if student else "",
+                mentor_name=mentor.name,
+                mentor_email=mentor.email,
+                session_details=session_details
+            )
+            
+            if email_result['success']:
+                print(f"✅ Session booking emails sent successfully")
+            else:
+                print(f"⚠️ Some emails failed to send")
+                
+        except Exception as notif_error:
+            print(f"Failed to send notifications: {str(notif_error)}")
+        
         return jsonify({
             'success': True,
-            'message': f'Session booking request sent to {mentor.name}',
+            'message': f'Session booked successfully with {mentor.name}! They will be notified.',
             'session': {
                 'id': str(session.id),
                 'mentor_name': mentor.name,
@@ -86,6 +183,9 @@ def book_mentor_session(mentor_id):
         
     except Exception as e:
         db.session.rollback()
+        print(f"Book session error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Failed to book session: {str(e)}'
@@ -337,3 +437,4 @@ def cancel_session(session_id):
             'success': False,
             'message': f'Failed to cancel session: {str(e)}'
         }), 500
+

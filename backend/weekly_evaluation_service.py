@@ -17,7 +17,8 @@ class WeeklyEvaluationService:
     """Service for managing weekly evaluations"""
     
     def __init__(self):
-        self.question_categories = [
+        # Default categories as fallback only
+        self.default_categories = [
             'Python', 'JavaScript', 'Web Development', 'Data Science', 
             'Algorithms', 'Database', 'System Design', 'Software Engineering'
         ]
@@ -114,23 +115,45 @@ class WeeklyEvaluationService:
     
     def _generate_evaluation_questions(self, evaluation_id: str, 
                                      coding_count: int, mcq_count: int) -> int:
-        """Generate questions for the evaluation"""
+        """Generate questions for the evaluation using AI based on ALL user interests/skills/goals"""
         questions_created = 0
         order_index = 1
-        
+
+        # Get ALL unique user topics from biodata (interests, skills, goals)
+        from models import BioData
+        all_topics = []
+        biodatas = BioData.query.all()
+
+        for biodata in biodatas:
+            # Collect from interests, skills, and goals
+            for field in [biodata.interests, biodata.skills, biodata.goals]:
+                if field:
+                    # Split by common delimiters and clean up
+                    topics_text = field.replace(',', ' ').replace(';', ' ').replace('\n', ' ').replace('|', ' ')
+                    user_topics = [t.strip() for t in topics_text.split() if t.strip() and len(t.strip()) > 2]
+                    all_topics.extend(user_topics)
+
+        # Remove duplicates and use as categories
+        unique_topics = list(set(all_topics)) if all_topics else []
+
+        # If no user topics found, use default categories
+        question_categories = unique_topics if unique_topics else self.default_categories
+
+        print(f"🎯 AI Generating questions from user topics: {question_categories}")
+
         # Generate coding questions
         for i in range(coding_count):
-            category = random.choice(self.question_categories)
+            category = random.choice(question_categories)
             difficulty = self._get_random_difficulty()
-            
-            # Generate coding question
+
+            # Generate coding question using AI (works for ANY topic including AutoCAD, Python, etc.)
             question_data = ai_question_generator.generate_question(
                 'coding', difficulty, category
             )
-            
+
             # Generate test cases for coding questions
             test_cases = self._generate_test_cases(question_data, category, difficulty)
-            
+
             question = WeeklyEvaluationQuestion(
                 evaluation_id=evaluation_id,
                 question_text=question_data['question_text'],
@@ -143,20 +166,21 @@ class WeeklyEvaluationService:
                 points=15 if difficulty == 'hard' else 12 if difficulty == 'medium' else 10,
                 order_index=order_index
             )
-            
+
             db.session.add(question)
             questions_created += 1
             order_index += 1
-        
+
         # Generate multiple choice questions
         for i in range(mcq_count):
-            category = random.choice(self.question_categories)
+            category = random.choice(question_categories)  # FIXED: now uses user topics
             difficulty = self._get_random_difficulty()
-            
+
+            # Generate MCQ using AI for ANY topic
             question_data = ai_question_generator.generate_question(
                 'multiple_choice', difficulty, category
             )
-            
+
             question = WeeklyEvaluationQuestion(
                 evaluation_id=evaluation_id,
                 question_text=question_data['question_text'],
@@ -169,12 +193,13 @@ class WeeklyEvaluationService:
                 points=10 if difficulty == 'hard' else 8 if difficulty == 'medium' else 5,
                 order_index=order_index
             )
-            
+
             db.session.add(question)
             questions_created += 1
             order_index += 1
-        
+
         return questions_created
+
     
     def _get_random_difficulty(self) -> str:
         """Get random difficulty based on distribution"""

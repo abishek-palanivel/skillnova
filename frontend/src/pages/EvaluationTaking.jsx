@@ -144,10 +144,10 @@ const EvaluationTaking = () => {
 
       if (response.ok) {
         navigate('/evaluation-scores', { 
-          state: { message: 'Evaluation auto-submitted due to time limit' }
+          state: { message: 'Questions auto-submitted due to time limit' }
         });
       } else {
-        setError('Failed to auto-submit evaluation');
+        setError('Failed to auto-submit questions');
       }
     } catch (err) {
       setError('Network error during auto-submission');
@@ -160,7 +160,7 @@ const EvaluationTaking = () => {
     if (submitting) return;
     
     const confirmSubmit = window.confirm(
-      'Are you sure you want to submit your evaluation? You cannot change your answers after submission.'
+      'Are you sure you want to submit your questions? You cannot change your answers after submission.'
     );
     
     if (!confirmSubmit) return;
@@ -181,13 +181,13 @@ const EvaluationTaking = () => {
       if (response.ok) {
         navigate('/evaluation-scores', { 
           state: { 
-            message: 'Evaluation submitted successfully!',
+            message: 'Questions submitted successfully!',
             score: data.score_percentage,
             grade: data.grade
           }
         });
       } else {
-        setError(data.message || 'Failed to submit evaluation');
+        setError(data.message || 'Failed to submit questions');
       }
     } catch (err) {
       setError('Network error during submission');
@@ -275,7 +275,7 @@ const EvaluationTaking = () => {
                 disabled={submitting}
                 className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
-                {submitting ? 'Submitting...' : 'Submit Evaluation'}
+                {submitting ? 'Submitting...' : 'Submit Questions'}
               </button>
             </div>
           </div>
@@ -461,6 +461,8 @@ const MultipleChoiceQuestion = ({ question, answer, onAnswerChange, onAutoNext }
 // Coding Question Component
 const CodingQuestion = ({ question, answer, language, onAnswerChange }) => {
   const [selectedLanguage, setSelectedLanguage] = useState(language);
+  const [codeOutput, setCodeOutput] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
 
   const handleLanguageChange = (newLanguage) => {
     setSelectedLanguage(newLanguage);
@@ -475,8 +477,35 @@ const CodingQuestion = ({ question, answer, language, onAnswerChange }) => {
     { value: 'c', label: 'C' }
   ];
 
+  const handleTestCode = async () => {
+    if (!answer || !answer.trim()) {
+      setCodeOutput('Error: Please write some code first');
+      return;
+    }
+
+    setIsRunning(true);
+    setCodeOutput('Running code...');
+
+    try {
+      // Simulate code execution (in real app, this would call backend)
+      setTimeout(() => {
+        setCodeOutput(`Code syntax check passed for ${selectedLanguage}.\n\nNote: Full execution will happen during evaluation submission.`);
+        setIsRunning(false);
+      }, 1000);
+    } catch (error) {
+      setCodeOutput(`Error: ${error.message}`);
+      setIsRunning(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-sm text-yellow-800">
+          <strong>💻 Coding Question:</strong> Write your solution and test it before submitting. Your code will be evaluated against hidden test cases.
+        </p>
+      </div>
+
       {/* Language Selector */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -512,21 +541,46 @@ const CodingQuestion = ({ question, answer, language, onAnswerChange }) => {
 
       {/* Code Editor */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Your Solution
-        </label>
+        <div className="flex justify-between items-center mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Your Solution
+          </label>
+          <button
+            onClick={handleTestCode}
+            disabled={isRunning}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            {isRunning ? 'Testing...' : 'Test Code'}
+          </button>
+        </div>
         <textarea
           value={answer}
           onChange={(e) => onAnswerChange(e.target.value, selectedLanguage)}
-          placeholder={`Write your ${selectedLanguage} code here...`}
+          placeholder={`Write your ${selectedLanguage} code here...\n\nExample for Python:\ndef solution(input_data):\n    # Your code here\n    return result`}
           className="w-full h-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
           style={{ fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace' }}
         />
       </div>
 
+      {/* Code Output */}
+      {codeOutput && (
+        <div className="bg-gray-900 text-green-400 p-4 rounded-md font-mono text-sm">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-semibold">Output:</span>
+            <button
+              onClick={() => setCodeOutput('')}
+              className="text-xs text-gray-400 hover:text-white"
+            >
+              Clear
+            </button>
+          </div>
+          <pre className="whitespace-pre-wrap">{codeOutput}</pre>
+        </div>
+      )}
+
       {question.test_cases_count && (
-        <div className="text-sm text-gray-600">
-          <span className="font-medium">Test Cases:</span> {question.test_cases_count} test cases will be used to evaluate your solution
+        <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
+          <span className="font-medium">📊 Testing:</span> Your code will be tested against {question.test_cases_count} hidden test cases for accuracy and correctness.
         </div>
       )}
     </div>

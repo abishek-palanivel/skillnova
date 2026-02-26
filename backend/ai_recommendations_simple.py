@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Simple AI Recommendations Engine
-Provides basic recommendation functionality for the SkillNova platform
+AI Recommendations Engine with Google Gemini Integration (FREE)
+Provides intelligent recommendation functionality using Gemini models
 """
 
 import random
+import os
 from typing import Dict, List, Any
+from openai_service import gemini_service
 
 class SimpleAIEngine:
     """Simple AI recommendation engine with basic functionality"""
@@ -63,7 +65,66 @@ class SimpleAIEngine:
         }
     
     def analyze_user_profile(self, bio_data: Dict, assessment_scores: List = None) -> Dict:
-        """Analyze user profile and return structured data"""
+        """Analyze user profile using Google Gemini and return structured data"""
+        try:
+            # Try Gemini AI analysis first
+            if os.getenv('GEMINI_API_KEY'):
+                ai_analysis = self._analyze_with_openai(bio_data, assessment_scores)
+                if ai_analysis:
+                    return ai_analysis
+            
+            # Fallback to rule-based analysis
+            return self._analyze_with_rules(bio_data, assessment_scores)
+        except Exception as e:
+            print(f"Error analyzing user profile: {e}")
+            return self._analyze_with_rules(bio_data, assessment_scores)
+    
+    def _analyze_with_openai(self, bio_data: Dict, assessment_scores: List = None) -> Dict:
+        """Use Google Gemini to analyze user profile"""
+        try:
+            prompt = f"""Analyze this user profile and provide recommendations:
+
+Bio Data:
+- Skills: {bio_data.get('skills', 'Not provided')}
+- Goals: {bio_data.get('goals', 'Not provided')}
+- Interests: {bio_data.get('interests', 'Not provided')}
+- Education: {bio_data.get('education', 'Not provided')}
+- Experience Level: {bio_data.get('experience_level', 'Beginner')}
+
+Assessment Scores: {assessment_scores if assessment_scores else 'No scores yet'}
+
+Provide a JSON response with:
+- interests: array of 3 main interest areas (e.g., ["Programming", "Web Development", "Data Science"])
+- skill_level: one of "Beginner", "Intermediate", "Advanced"
+- experience_level: same as skill_level
+- profile_completeness: number 0-100
+- learning_style: one of "Visual", "Hands-on", "Reading", "Interactive"
+- goals: brief summary of user's learning goals
+- recommended_focus: array of 2-3 specific areas to focus on"""
+
+            system_message = "You are an expert educational advisor analyzing student profiles. Always respond with valid JSON."
+            
+            result = gemini_service.generate_json_completion(prompt, system_message, temperature=0.5)
+            
+            if result:
+                # Ensure all required fields are present
+                return {
+                    'interests': result.get('interests', ['Programming'])[:3],
+                    'skill_level': result.get('skill_level', 'Beginner'),
+                    'experience_level': result.get('experience_level', 'Beginner'),
+                    'profile_completeness': result.get('profile_completeness', 50),
+                    'learning_style': result.get('learning_style', 'Visual'),
+                    'goals': result.get('goals', 'Learn programming'),
+                    'recommended_focus': result.get('recommended_focus', [])
+                }
+            
+            return None
+        except Exception as e:
+            print(f"OpenAI analysis error: {e}")
+            return None
+    
+    def _analyze_with_rules(self, bio_data: Dict, assessment_scores: List = None) -> Dict:
+        """Fallback rule-based analysis"""
         try:
             interests = []
             skill_level = 'Beginner'
@@ -157,7 +218,60 @@ class SimpleAIEngine:
         return self.analyze_user_profile(bio_data)
     
     def recommend_courses(self, user_profile: Dict, limit: int = 5) -> List[Dict]:
-        """Enhanced course recommendations with creative background support"""
+        """Enhanced course recommendations with Google Gemini"""
+        try:
+            # Try Gemini AI recommendations first
+            if os.getenv('GEMINI_API_KEY'):
+                ai_recommendations = self._recommend_courses_with_openai(user_profile, limit)
+                if ai_recommendations:
+                    return ai_recommendations
+            
+            # Fallback to rule-based recommendations
+            return self._recommend_courses_with_rules(user_profile, limit)
+        except Exception as e:
+            print(f"Error recommending courses: {e}")
+            return self._recommend_courses_with_rules(user_profile, limit)
+    
+    def _recommend_courses_with_openai(self, user_profile: Dict, limit: int) -> List[Dict]:
+        """Use Google Gemini to recommend courses"""
+        try:
+            interests = user_profile.get('interests', ['Programming'])
+            skill_level = user_profile.get('skill_level', 'Beginner')
+            goals = user_profile.get('goals', '')
+            
+            prompt = f"""Recommend {limit} online courses for a student with:
+- Interests: {', '.join(interests)}
+- Skill Level: {skill_level}
+- Goals: {goals}
+
+Provide a JSON response with an array of courses, each containing:
+- title: course name
+- category: main category
+- difficulty: Beginner/Intermediate/Advanced
+- match_score: 75-98 (how well it matches the user)
+- description: brief description (1-2 sentences)
+- duration: e.g., "6 weeks"
+- rating: 4.0-5.0
+- reason: why this course is recommended (1 sentence)
+- skills_gained: array of 3-4 skills
+- career_paths: array of 2-3 career options
+
+Format as: {{"courses": [...]}}"""
+
+            system_message = "You are an expert course advisor. Recommend real, high-quality courses. Always respond with valid JSON."
+            
+            result = gemini_service.generate_json_completion(prompt, system_message, temperature=0.7)
+            
+            if result and 'courses' in result:
+                return result['courses'][:limit]
+            
+            return None
+        except Exception as e:
+            print(f"OpenAI course recommendation error: {e}")
+            return None
+    
+    def _recommend_courses_with_rules(self, user_profile: Dict, limit: int) -> List[Dict]:
+        """Fallback rule-based course recommendations"""
         try:
             recommendations = []
             interests = user_profile.get('interests', ['Programming'])

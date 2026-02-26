@@ -193,7 +193,7 @@ const TestTaking = () => {
     }
   };
 
-  const handleAnswerChange = (questionId, answer) => {
+  const handleAnswerChange = (questionId, answer, autoAdvance = false) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
@@ -201,6 +201,14 @@ const TestTaking = () => {
     
     // Auto-save answer locally (no API call during test)
     console.log(`Answer saved for question ${questionId}: ${answer}`);
+    
+    // Auto-advance to next question for MCQ if enabled
+    if (autoAdvance && currentQuestionIndex < test.questions.length - 1) {
+      setTimeout(() => {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+        toast.success('Answer saved! Moving to next question...');
+      }, 800);
+    }
   };
 
   const handleSubmitTest = async () => {
@@ -711,6 +719,11 @@ const TestTaking = () => {
             
             {currentQuestion.question_type === 'multiple_choice' && currentQuestion.options && Array.isArray(currentQuestion.options) && (
               <div className="space-y-3">
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>📝 MCQ Rule:</strong> Select an option to automatically proceed to the next question.
+                  </p>
+                </div>
                 {currentQuestion.options.map((option, index) => (
                   <label 
                     key={index} 
@@ -725,12 +738,24 @@ const TestTaking = () => {
                       name={`question-${currentQuestion.id}`}
                       value={option}
                       checked={answers[currentQuestion.id] === option}
-                      onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                      onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value, true)}
                       className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-gray-900 flex-1">{option}</span>
+                    {answers[currentQuestion.id] === option && (
+                      <div className="text-green-600">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                    )}
                   </label>
                 ))}
+                {answers[currentQuestion.id] && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800">
+                      ✅ Answer selected! Moving to next question...
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             
@@ -742,13 +767,87 @@ const TestTaking = () => {
             )}
             
             {currentQuestion.question_type === 'coding' && (
-              <div>
-                <textarea
-                  value={answers[currentQuestion.id] || ''}
-                  onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                  placeholder="Write your code here..."
-                  className="w-full h-64 p-4 border border-gray-300 rounded-lg font-mono text-sm"
-                />
+              <div className="space-y-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800">
+                    <strong>💻 Coding Question:</strong> Write your solution in the code editor below. Make sure to test your code logic before submitting.
+                  </p>
+                </div>
+                
+                {/* Language Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Programming Language
+                  </label>
+                  <select
+                    value={answers[currentQuestion.id]?.language || 'python'}
+                    onChange={(e) => {
+                      const currentAnswer = answers[currentQuestion.id];
+                      setAnswers(prev => ({
+                        ...prev,
+                        [currentQuestion.id]: {
+                          code: currentAnswer?.code || '',
+                          language: e.target.value
+                        }
+                      }));
+                    }}
+                    className="block w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="c">C</option>
+                  </select>
+                </div>
+                
+                {/* Code Editor */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Solution
+                  </label>
+                  <textarea
+                    value={answers[currentQuestion.id]?.code || answers[currentQuestion.id] || ''}
+                    onChange={(e) => {
+                      const currentAnswer = answers[currentQuestion.id];
+                      if (typeof currentAnswer === 'object') {
+                        setAnswers(prev => ({
+                          ...prev,
+                          [currentQuestion.id]: {
+                            ...currentAnswer,
+                            code: e.target.value
+                          }
+                        }));
+                      } else {
+                        setAnswers(prev => ({
+                          ...prev,
+                          [currentQuestion.id]: {
+                            code: e.target.value,
+                            language: 'python'
+                          }
+                        }));
+                      }
+                    }}
+                    placeholder={`Write your ${answers[currentQuestion.id]?.language || 'python'} code here...`}
+                    className="w-full h-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                    style={{ fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace' }}
+                  />
+                </div>
+                
+                {/* Sample Inputs if available */}
+                {currentQuestion.sample_inputs && currentQuestion.sample_inputs.length > 0 && (
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">Sample Inputs:</h4>
+                    {currentQuestion.sample_inputs.map((input, index) => (
+                      <div key={index} className="mb-2">
+                        <span className="text-sm text-gray-600">Input {index + 1}:</span>
+                        <code className="ml-2 px-2 py-1 bg-white rounded text-sm font-mono">
+                          {input}
+                        </code>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             

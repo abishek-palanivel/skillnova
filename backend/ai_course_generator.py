@@ -30,6 +30,9 @@ class AICourseGenerator:
                 'advanced': ['medium', 'medium', 'hard', 'hard', 'hard', 'hard', 'hard', 'hard']
             }
         }
+        
+        # Course templates for different domains
+        self.course_templates = {
             'web_development': {
                 'modules': [
                     'HTML Fundamentals',

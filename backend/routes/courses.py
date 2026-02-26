@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
+from sqlalchemy import func
 
-from models import db, Course, CourseEnrollment, CourseModule, Assessment
+from models import db, Course, CourseEnrollment, CourseModule, Assessment, CourseRating
 
 courses_bp = Blueprint('courses', __name__)
 
@@ -24,6 +25,11 @@ def get_courses():
                 'skill_level': course.skill_level,
                 'duration_weeks': course.duration_weeks,
                 'modules_count': len(course.modules),
+                'cost': float(course.cost) if course.cost else 0.0,
+                'is_locked': course.is_locked or False,
+                # Keep rating for backward compatibility
+                'average_rating': course.average_rating or 0.0,
+                'total_ratings': course.total_ratings or 0,
                 'created_at': course.created_at.isoformat()
             })
         
@@ -394,6 +400,8 @@ def get_course_by_id(course_id):
             'skill_level': course.skill_level,
             'duration_weeks': course.duration_weeks,
             'modules_count': len(course.modules),
+            'cost': float(course.cost) if course.cost else 0.0,
+            'is_locked': course.is_locked or False,
             'created_at': course.created_at.isoformat()
         }
         
@@ -762,4 +770,112 @@ def get_ai_course_recommendations():
         return jsonify({
             'success': False,
             'message': f'Failed to get AI recommendations: {str(e)}'
+        }), 500
+
+@courses_bp.route('/<course_id>/rate', methods=['POST'])
+@jwt_required()
+def rate_course(course_id):
+    """Rate a course (1-5 stars)"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        rating_value = data.get('rating')
+        review = data.get('review', '')
+        
+        # Validate rating
+        if not rating_value or not isinstance(rating_value, int) or rating_value < 1 or rating_value > 5:
+            return jsonify({
+                'success': False,
+                'message': 'Rating must be between 1 and 5'
+            }), 400
+        
+        # Check if course exists
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({
+                'success': False,
+                'message': 'Course not found'
+            }), 404
+        
+        # Check if user already rated this course
+        existing_rating = CourseRating.query.filter_by(
+            user_id=user_id,
+            course_id=course_id
+        ).first()
+        
+        if existing_rating:
+            # Update existing rating
+            existing_rating.rating = rating_value
+            existing_rating.review = review
+            existing_rating.updated_at = datetime.utcnow()
+        else:
+            # Create new rating
+            new_rating = CourseRating(
+                course_id=course_id,
+                user_id=user_id,
+                rating=rating_value,
+                review=review
+            )
+            db.session.add(new_rating)
+        
+        # Recalculate course average rating
+        avg_rating = db.session.query(func.avg(CourseRating.rating)).filter_by(course_id=course_id).scalar()
+        total_ratings = CourseRating.query.filter_by(course_id=course_id).count()
+        
+        course.average_rating = float(avg_rating) if avg_rating else 0.0
+        course.total_ratings = total_ratings
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Rating submitted successfully',
+            'average_rating': course.average_rating,
+            'total_ratings': course.total_ratings,
+            'user_rating': rating_value
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Failed to submit rating: {str(e)}'
+        }), 500
+
+@courses_bp.route('/<course_id>/rating', methods=['GET'])
+def get_course_rating(course_id):
+    """Get course rating information"""
+    try:
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({
+                'success': False,
+                'message': 'Course not found'
+            }), 404
+        
+        # Get user's rating if authenticated
+        user_rating = 0
+        try:
+            user_id = get_jwt_identity()
+            user_rating_obj = CourseRating.query.filter_by(
+                user_id=user_id,
+                course_id=course_id
+            ).first()
+            if user_rating_obj:
+                user_rating = user_rating_obj.rating
+        except:
+            pass  # User not authenticated
+        
+        return jsonify({
+            'success': True,
+            'average_rating': course.average_rating or 0.0,
+            'total_ratings': course.total_ratings or 0,
+            'user_rating': user_rating
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Failed to get rating: {str(e)}'
         }), 500

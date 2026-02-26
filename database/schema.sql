@@ -81,13 +81,21 @@ CREATE TABLE course_enrollments (
 -- Mentors table
 CREATE TABLE mentors (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(120) UNIQUE NOT NULL,
     expertise TEXT,
-    experience_years INTEGER,
+    experience_years INTEGER DEFAULT 0,
+    bio TEXT,
+    phone VARCHAR(20),
+    linkedin VARCHAR(255),
+    github VARCHAR(255),
+    hourly_rate FLOAT DEFAULT 0.0,
     is_available BOOLEAN DEFAULT TRUE,
     rating FLOAT DEFAULT 0.0 CHECK (rating >= 0 AND rating <= 5),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    total_sessions INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Mentor sessions

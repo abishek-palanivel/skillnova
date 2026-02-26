@@ -1,143 +1,527 @@
-# SkillNova - AI-Powered Learning Platform with Weekly Evaluation System
+# SkillNova - Universal AI-Powered Learning Platform
 
-💫 **"Shine with Skills. Grow with Guidance."**
+<div align="center">
 
-## 🎯 Overview
-SkillNova is a comprehensive AI-powered learning platform featuring automated weekly evaluations, multi-language code execution, and intelligent opportunity matching that connects learners with real-world career opportunities.
+![SkillNova Logo](https://img.shields.io/badge/SkillNova-AI%20Learning-blue?style=for-the-badge)
+[![Python](https://img.shields.io/badge/Python-3.13.3-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![React](https://img.shields.io/badge/React-18.x-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-## ✨ Key Features
+**"Shine with Skills. Grow with Guidance."**
 
-### 🤖 Weekly AI Evaluation System
-- **Automated Weekly Tests**: AI generates 10 questions every Sunday (5 MCQ + 5 Coding)
-- **Multi-Language Code Execution**: Python, JavaScript, Java, C++, C with real-time testing
-- **Instant AI Scoring**: Immediate evaluation and detailed feedback
-- **Opportunity Matching**: Automatic matching with internships and scholarships
-- **Admin Workflow**: Complete management for sessions and opportunities
+[Features](#-key-features) • [Tech Stack](#-tech-stack) • [Installation](#-installation) • [Documentation](#-documentation) • [Demo](#-demo)
 
-### 🎓 Core Learning Platform
-- **User Registration & Authentication**: Secure JWT-based authentication
-- **Skill Assessment & Testing**: Comprehensive evaluation system
-- **Personalized Course Recommendations**: AI-driven learning paths
-- **Mentor Matching & Sessions**: Expert guidance and mentorship
-- **Practice Modules & Quizzes**: Interactive learning exercises
-- **Admin Management Dashboard**: Complete system administration
-
-## 🛠️ Tech Stack
-- **Frontend**: React.js + Tailwind CSS + Monaco Editor
-- **Backend**: Python 3.13.3 + Flask + SQLAlchemy
-- **Database**: PostgreSQL with JSON support
-- **AI Services**: Custom question generation and code evaluation
-- **Code Execution**: Multi-language sandboxed execution
-- **Email Service**: SMTP integration for notifications
-- **Automation**: Schedule-based weekly task automation
-
-## 📁 Project Structure
-```
-skillnova/
-├── frontend/                    # React.js application
-│   ├── src/pages/
-│   │   ├── WeeklyEvaluation.jsx        # User evaluation interface
-│   │   ├── OpportunityMatches.jsx      # Opportunity matching
-│   │   └── admin/
-│   │       └── AdminWeeklyEvaluation.jsx # Admin management
-│   └── src/components/
-│       └── CodeEditor.jsx              # Monaco code editor
-├── backend/                     # Flask API server
-│   ├── routes/
-│   │   └── weekly_evaluation.py        # Weekly evaluation API
-│   ├── models.py                       # Database models
-│   ├── ai_question_generator.py        # AI question generation
-│   ├── code_execution_service.py       # Multi-language execution
-│   ├── weekly_automation.py            # Automated tasks
-│   └── setup_weekly_evaluation.py      # Database setup
-├── database/                    # PostgreSQL schemas
-│   └── weekly_content_schema.sql       # Weekly evaluation schema
-└── WEEKLY_EVALUATION_SYSTEM_SUMMARY.md # Complete documentation
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.8+
-- Node.js 14+
-- PostgreSQL 12+
-
-### Installation & Setup
-
-1. **Clone and Setup Database**
-   ```bash
-   git clone <repository-url>
-   cd skillnova
-   python backend/setup_weekly_evaluation.py
-   ```
-
-2. **Start Backend**
-   ```bash
-   start_system.bat
-   # OR manually: cd backend && python app.py
-   ```
-
-3. **Start Frontend** (new terminal)
-   ```bash
-   cd frontend
-   npm install
-   npm start
-   ```
-
-4. **Access the System**
-   - **Frontend**: http://localhost:3000
-   - **Admin Portal**: http://localhost:3000/admin/weekly-evaluation
-   - **Weekly Evaluation**: http://localhost:3000/weekly-evaluation
-   - **Backend API**: http://localhost:5000
-
-### 👤 Test Accounts
-- **Admin**: abishekopennova@gmail.com / abi@1234
-- **Mentor**: abishekpopennova@gmail.com / abi@1234
-- **Student**: abishekpalanivel212@gmail.com / abi@1234
-
-## 🎮 User Experience
-
-### For Students
-1. **Take Weekly Evaluations** → Complete AI-generated assessments
-2. **Code in Real-time** → Write and test code in multiple languages
-3. **Get Instant Results** → Receive immediate AI scoring and feedback
-4. **Discover Opportunities** → View matched internships and scholarships
-5. **Request Connections** → Ask admin to connect with employers
-
-### For Admins
-1. **Manage Sessions** → Create and oversee weekly evaluations
-2. **Add Opportunities** → Post internships and scholarships
-3. **Review Requests** → Approve student contact requests
-4. **Send Communications** → Email opportunities to qualified users
-
-## 🤖 AI-Powered Features
-
-- **Smart Question Generation**: Context-aware questions across multiple categories
-- **Code Evaluation**: Secure multi-language execution with automatic scoring
-- **Opportunity Matching**: Score-based algorithm with AI recommendations
-- **Performance Analytics**: Detailed insights and progress tracking
-
-## 🔄 Automation
-
-- **Sunday 00:00**: Auto-generate new weekly evaluation sessions
-- **Monday 01:00**: Cleanup old inactive sessions
-- **Continuous**: Email notifications and opportunity matching
-
-## 📊 System Status
-
-✅ **Production Ready**  
-✅ **Weekly Evaluation System**: Fully operational  
-✅ **Multi-language Code Execution**: Python, JS, Java, C++, C  
-✅ **Opportunity Matching**: Active with email workflow  
-✅ **Admin Management**: Complete CRUD operations  
-✅ **Email Notifications**: Configured and tested  
-
-## 👨‍💻 Developer Information
-- **Developer**: Abishek
-- **LinkedIn**: https://www.linkedin.com/in/abishek-p-9ab80a326
-- **Email**: abishekopennova@gmail.com
+</div>
 
 ---
 
-**SkillNova** - Empowering learners worldwide with AI-driven education and automated career opportunities.
+## 🎯 Overview
 
+SkillNova is a comprehensive, AI-powered learning platform that supports **ANY topic** - from programming languages to design tools like AutoCAD and Photoshop. The platform features automated question generation, intelligent course creation, multi-language code evaluation, and personalized learning paths.
+
+### 🌟 What Makes SkillNova Special?
+
+- **Universal Topic Support**: Works for programming, design tools, creative arts, and ANY subject
+- **AI-Powered Everything**: Questions, courses, evaluations, and certificates all generated by AI
+- **No Manual Setup**: Questions and courses auto-generate on demand
+- **Multi-Language Code Execution**: Supports 14+ programming languages
+- **Personalized Learning**: AI adapts to each student's background and goals
+- **Professional Certificates**: AI-generated personalized certificates with QR verification
+
+---
+
+## ✨ Key Features
+
+### 🤖 AI-Powered Core Features
+
+#### 1. **Universal Question Generation**
+- Generates questions for **ANY topic** (AutoCAD, Photoshop, Python, JavaScript, etc.)
+- Three question types: Multiple Choice, Coding, Essay
+- Three difficulty levels: Easy, Medium, Hard
+- Auto-generates when database is empty
+- Uses Google Gemini AI with template fallback
+
+#### 2. **Intelligent Course Generation**
+- Creates complete courses for any subject
+- Smart topic detection from course titles
+- Contextual module generation (8-12 modules)
+- Progressive difficulty and learning paths
+- Supports 40+ course categories
+
+#### 3. **Multi-Language Code Evaluation**
+- Evaluates code in 14+ languages (Python, Java, C++, JavaScript, etc.)
+- Automatic test case execution
+- AI-powered code quality analysis
+- Detailed feedback and scoring
+- Readability, efficiency, and best practices scores
+
+#### 4. **Personalized Certificates**
+- AI-generated certificate content
+- Performance-based messaging
+- Special recognition for perfect scores (100%)
+- QR code verification
+- Professional PDF generation
+
+#### 5. **Smart Recommendations**
+- Analyzes user profiles (skills, interests, goals)
+- Recommends courses for any background
+- Special support for creative/arts backgrounds
+- Personalized learning paths
+- Mentor matching
+
+#### 6. **Weekly Evaluations**
+- Automated Sunday evaluations (5:00 PM)
+- User-specific topic generation
+- Mix of MCQ and coding questions
+- Instant AI scoring
+- Grade calculation (A+ to F)
+
+### 🎨 Platform Features
+
+#### For Students
+- ✅ Skill assessments and testing
+- ✅ Personalized course recommendations
+- ✅ Practice modules and quizzes
+- ✅ Mentor matching and sessions
+- ✅ Video call integration
+- ✅ Real-time chat with mentors
+- ✅ Progress tracking and analytics
+- ✅ Certificate generation
+
+#### For Mentors
+- ✅ Profile management with custom pricing
+- ✅ Session scheduling and management
+- ✅ Student progress tracking
+- ✅ Video call capabilities
+- ✅ Chat communication
+- ✅ Earnings dashboard
+
+#### For Admins
+- ✅ Complete user management
+- ✅ Course and question management
+- ✅ Mentor approval and oversight
+- ✅ Analytics and reporting
+- ✅ Weekly evaluation management
+- ✅ System configuration
+
+### � UI/UX Features
+- **6 Beautiful Themes**: Light, Dark, Ocean, Forest, Sunset, Purple
+- **Responsive Design**: Works on all devices
+- **Intuitive Navigation**: Easy to use interface
+- **Real-time Updates**: Live notifications and updates
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **Framework**: React.js 18.x
+- **Styling**: Tailwind CSS
+- **Code Editor**: Monaco Editor
+- **Routing**: React Router v6
+- **State Management**: Context API
+- **HTTP Client**: Axios
+
+### Backend
+- **Language**: Python 3.13.3
+- **Framework**: Flask
+- **ORM**: SQLAlchemy
+- **Authentication**: JWT (Flask-JWT-Extended)
+- **Email**: SMTP Integration
+- **Scheduler**: APScheduler
+
+### Database
+- **Primary**: PostgreSQL 12+
+- **Features**: JSON support, UUID primary keys
+- **Migrations**: Custom migration system
+
+### AI Services
+- **AI Provider**: Google Gemini (gemini-2.0-flash-exp)
+- **Features**: Text generation, JSON completion
+- **Fallback**: Template-based generation
+
+### Code Execution
+- **Languages**: Python, Java, C++, C, JavaScript, TypeScript, C#, Go, Rust, PHP, Ruby, Kotlin, Swift, Scala
+- **Sandbox**: Subprocess-based isolated execution
+- **Timeout**: Configurable per language
+
+---
+
+## � Project Structure
+
+```
+skillnova/
+├── frontend/                           # React.js application
+│   ├── src/
+│   │   ├── components/                # Reusable components
+│   │   │   ├── Chat.jsx              # Chat interface
+│   │   │   ├── NotificationCenter.jsx # Notifications
+│   │   │   └── LoadingSpinner.jsx    # Loading states
+│   │   ├── pages/                    # Page components
+│   │   │   ├── Dashboard.jsx         # User dashboard
+│   │   │   ├── Courses.jsx           # Course listing
+│   │   │   ├── TestTaking.jsx        # Test interface
+│   │   │   ├── WeeklyEvaluation.jsx  # Weekly tests
+│   │   │   ├── admin/                # Admin pages
+│   │   │   └── mentor/               # Mentor pages
+│   │   ├── contexts/                 # React contexts
+│   │   │   └── AuthContext.jsx       # Authentication
+│   │   └── utils/                    # Utility functions
+│   │       └── api.js                # API client
+│   ├── public/                       # Static assets
+│   └── package.json                  # Dependencies
+│
+├── backend/                           # Flask API server
+│   ├── routes/                       # API routes
+│   │   ├── tests.py                  # Test endpoints
+│   │   ├── courses.py                # Course endpoints
+│   │   ├── practice.py               # Practice endpoints
+│   │   ├── admin.py                  # Admin endpoints
+│   │   ├── mentors.py                # Mentor endpoints
+│   │   ├── chat.py                   # Chat endpoints
+│   │   └── video_calls.py            # Video call endpoints
+│   ├── models.py                     # Database models
+│   ├── app.py                        # Flask application
+│   │
+│   ├── AI Services/                  # AI-powered features
+│   │   ├── ai_question_generator.py  # Question generation
+│   │   ├── ai_course_generator.py    # Course generation
+│   │   ├── ai_code_evaluator.py      # Code evaluation
+│   │   ├── ai_recommendations_simple.py # Recommendations
+│   │   └── openai_service.py         # Gemini integration
+│   │
+│   ├── Services/                     # Business logic
+│   │   ├── certificate_service.py    # Certificate generation
+│   │   ├── email_service.py          # Email notifications
+│   │   ├── notification_service.py   # Push notifications
+│   │   └── weekly_evaluation_service.py # Weekly tests
+│   │
+│   ├── .env                          # Environment variables
+│   └── requirements.txt              # Python dependencies
+│
+├── database/                          # Database files
+│   ├── schema.sql                    # Main schema
+│   ├── migrations/                   # Migration scripts
+│   └── README.md                     # Database docs
+│
+├── certificates/                      # Generated certificates
+│
+├── Documentation/                     # Project documentation
+│   ├── AI_FEATURES_COMPREHENSIVE_FIX.md
+│   ├── AI_QUESTION_GENERATION_FIX.md
+│   └── COMPLETE_AI_FIX_SUMMARY.md
+│
+└── README.md                         # This file
+```
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+- Python 3.8+ (3.13.3 recommended)
+- Node.js 14+ (18.x recommended)
+- PostgreSQL 12+
+- Git
+
+### Step 1: Clone Repository
+```bash
+git clone https://github.com/yourusername/skillnova.git
+cd skillnova
+```
+
+### Step 2: Database Setup
+```bash
+# Create PostgreSQL database
+createdb skillnova
+
+# Run schema
+psql -d skillnova -f database/schema.sql
+
+# Run migrations (if any)
+cd database
+python run_migrations.py
+```
+
+### Step 3: Backend Setup
+```bash
+cd backend
+
+# Create virtual environment (optional but recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment variables
+# Edit .env file and add:
+# - DATABASE_URL
+# - JWT_SECRET_KEY
+# - GEMINI_API_KEY (optional, uses fallback if not provided)
+# - EMAIL credentials
+
+# Start backend server
+python app.py
+```
+
+Backend will run on: http://localhost:5000
+
+### Step 4: Frontend Setup
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+```
+
+Frontend will run on: http://localhost:3000
+
+---
+
+## 🔑 Environment Variables
+
+Create a `.env` file in the `backend/` directory:
+
+```env
+# Database
+DATABASE_URL=postgresql://username:password@localhost:5432/skillnova
+
+# JWT
+JWT_SECRET_KEY=your-secret-key-here
+
+# Google Gemini AI (Optional - uses fallback if not provided)
+GEMINI_API_KEY=your-gemini-api-key
+
+# Email Configuration
+ADMIN_EMAIL=your-email@gmail.com
+ADMIN_APP_PASS=your-app-password
+USER_EMAIL=user-email@gmail.com
+USER_PASSWORD=user-password
+
+# Admin Credentials
+ADMIN_PASSWORD=admin-password
+
+# Flask
+FLASK_ENV=development
+FLASK_DEBUG=True
+
+# Frontend URL
+FRONTEND_URL=http://localhost:3000
+```
+
+### Getting Gemini API Key (Free)
+1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Sign in with Google account
+3. Create new API key
+4. Copy and paste into `.env`
+
+**Note**: If no API key is provided, the system will use template-based fallback generation.
+
+---
+
+## 👤 Default Test Accounts
+
+After setup, you can use these test accounts:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | abishekopennova@gmail.com | abi@1234 |
+| Mentor | abishekpopennova@gmail.com | abi@1234 |
+| Student | abishekpalanivel212@gmail.com | abi@1234 |
+
+---
+
+## 📚 Documentation
+
+### Quick Start Guides
+- **[AI Features Comprehensive Fix](AI_FEATURES_COMPREHENSIVE_FIX.md)** - Complete AI features overview
+- **[AI Question Generation Fix](AI_QUESTION_GENERATION_FIX.md)** - Question generation details
+- **[Complete AI Fix Summary](COMPLETE_AI_FIX_SUMMARY.md)** - Executive summary
+
+### API Documentation
+- **Backend API**: http://localhost:5000/api/docs (when running)
+- **Routes**: See `backend/routes/` for endpoint details
+
+### Database Documentation
+- **[Database README](database/README.md)** - Schema and migration guide
+- **[Schema SQL](database/schema.sql)** - Complete database schema
+
+---
+
+## 🎮 Usage Examples
+
+### For Students
+
+1. **Sign Up / Login**
+   - Create account or login
+   - Complete bio-data profile
+
+2. **Take Initial Assessment**
+   - Navigate to Tests
+   - Take initial assessment
+   - Get personalized course recommendations
+
+3. **Enroll in Courses**
+   - Browse recommended courses
+   - Enroll in courses
+   - Study modules
+
+4. **Practice & Test**
+   - Practice questions (auto-generated)
+   - Take module tests
+   - Take final assessments
+
+5. **Get Certificate**
+   - Complete course with 60%+ score
+   - Download personalized certificate
+
+### For Admins
+
+1. **Manage Courses**
+   - Create courses (AI generates content)
+   - Add modules
+   - Manage questions
+
+2. **Generate Questions**
+   - Use AI question generator
+   - Specify topic, difficulty, type
+   - Questions auto-save to database
+
+3. **Monitor System**
+   - View analytics
+   - Manage users
+   - Review evaluations
+
+---
+
+## 🧪 Testing
+
+### Test AI Question Generation
+```bash
+cd backend
+python test_autocad_questions.py
+```
+
+This tests question generation for:
+- AutoCAD (easy, medium, hard)
+- Photoshop (medium)
+- Python (easy)
+- JavaScript (medium, coding)
+
+### Run Backend Tests
+```bash
+cd backend
+pytest
+```
+
+### Run Frontend Tests
+```bash
+cd frontend
+npm test
+```
+
+---
+
+## 🌐 Supported Topics
+
+SkillNova supports **ANY topic**, including:
+
+### Programming Languages
+Python, JavaScript, Java, C++, C#, C, Go, Rust, PHP, Ruby, Kotlin, Swift, Scala, TypeScript
+
+### Web Technologies
+React, Angular, Vue.js, Node.js, Django, Flask, Spring Boot, Express, HTML, CSS
+
+### Design & Creative Tools
+**AutoCAD**, **Photoshop**, **Illustrator**, **Figma**, **Blender**, 3D Modeling, Animation, Video Editing, Graphic Design, UI/UX Design
+
+### Game Development
+Unity, Unreal Engine, Game Design, Godot
+
+### Cloud & DevOps
+AWS, Azure, Docker, Kubernetes, CI/CD, Jenkins
+
+### Mobile Development
+Android, iOS, React Native, Flutter, Xamarin
+
+### Data & AI
+Machine Learning, Data Science, Analytics, Deep Learning, TensorFlow, PyTorch
+
+### Other
+Networking, Linux, Git, Cybersecurity, Database (SQL, NoSQL), System Design
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👨‍💻 Developer
+
+**Abishek P**
+- LinkedIn: [linkedin.com/in/abishek-p-9ab80a326](https://www.linkedin.com/in/abishek-p-9ab80a326)
+- Email: abishekopennova@gmail.com
+
+---
+
+## 🙏 Acknowledgments
+
+- Google Gemini AI for intelligent question and course generation
+- React and Flask communities for excellent frameworks
+- PostgreSQL for robust database support
+- All contributors and users of SkillNova
+
+---
+
+## 📊 Project Status
+
+✅ **Production Ready**  
+✅ **AI Features**: Fully operational for all topics  
+✅ **Multi-language Code Execution**: 14+ languages supported  
+✅ **Weekly Evaluations**: Automated and working  
+✅ **Certificate Generation**: AI-powered and personalized  
+✅ **Mentor System**: Complete with video calls and chat  
+
+---
+
+## 🔮 Future Enhancements
+
+- [ ] Mobile app (React Native)
+- [ ] Advanced analytics dashboard
+- [ ] Gamification features
+- [ ] Social learning features
+- [ ] Integration with more AI models
+- [ ] Blockchain certificates
+- [ ] Live coding sessions
+- [ ] Peer-to-peer learning
+
+---
+
+<div align="center">
+
+**SkillNova v3.0.0** - Empowering learners worldwide with universal AI-driven education
+
+Made with ❤️ by Abishek P
+
+[⬆ Back to Top](#skillnova---universal-ai-powered-learning-platform)
+
+</div>

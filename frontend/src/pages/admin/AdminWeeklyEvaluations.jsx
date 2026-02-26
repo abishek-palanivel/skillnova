@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import Cookies from 'js-cookie';
+import toast from 'react-hot-toast';
 
 const AdminWeeklyEvaluations = () => {
   const { user } = useAuth();
@@ -62,7 +63,7 @@ const AdminWeeklyEvaluations = () => {
         setError(''); // Clear any previous errors
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to fetch evaluations');
+        setError(errorData.message || 'Failed to fetch question sets');
       }
     } catch (err) {
       setError('Network error occurred. Please check if the backend server is running.');
@@ -108,7 +109,7 @@ const AdminWeeklyEvaluations = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess('Weekly evaluation created successfully!');
+        setSuccess('Weekly question set created successfully!');
         setShowCreateModal(false);
         fetchEvaluations();
         setCreateForm({
@@ -119,7 +120,7 @@ const AdminWeeklyEvaluations = () => {
           duration_minutes: 60
         });
       } else {
-        setError(data.message || 'Failed to create evaluation');
+        setError(data.message || 'Failed to create question set');
       }
     } catch (err) {
       setError('Network error occurred. Please check if the backend server is running.');
@@ -154,10 +155,11 @@ const AdminWeeklyEvaluations = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess(`Auto-generated ${data.created_evaluations.length} evaluations for the next 4 weeks!`);
+        const count = data.created_evaluations?.length || 0;
+        setSuccess(`Auto-generated ${count} question sets for the next 4 weeks!`);
         fetchEvaluations();
       } else {
-        setError(data.message || 'Failed to auto-generate evaluations');
+        setError(data.message || 'Failed to auto-generate question sets');
       }
     } catch (err) {
       setError('Network error occurred. Please check if the backend server is running.');
@@ -290,7 +292,7 @@ const AdminWeeklyEvaluations = () => {
   };
 
   const deleteEvaluation = async (evaluationId, evaluationTitle) => {
-    if (!window.confirm(`Are you sure you want to delete the evaluation "${evaluationTitle}"? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to delete the question set "${evaluationTitle}"? This action cannot be undone.`)) {
       return;
     }
 
@@ -308,7 +310,7 @@ const AdminWeeklyEvaluations = () => {
         setSuccess(data.message);
         fetchEvaluations(); // Refresh the list
       } else {
-        setError(data.message || 'Failed to delete evaluation');
+        setError(data.message || 'Failed to delete question set');
       }
     } catch (err) {
       setError('Network error occurred');
@@ -337,8 +339,8 @@ const AdminWeeklyEvaluations = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Weekly Evaluations Management</h1>
-        <p className="mt-2 text-gray-600">Manage automated weekly evaluations and review student performance</p>
+        <h1 className="text-3xl font-bold text-gray-900">Weekly Questions Management</h1>
+        <p className="mt-2 text-gray-600">Manage automated weekly questions and review student performance</p>
       </div>
 
       {error && (
@@ -359,7 +361,7 @@ const AdminWeeklyEvaluations = () => {
           onClick={handleCreateModalOpen}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
         >
-          Create Evaluation
+          Create Question Set
         </button>
         <button
           onClick={autoGenerateEvaluations}
@@ -369,10 +371,10 @@ const AdminWeeklyEvaluations = () => {
         </button>
       </div>
 
-      {/* Evaluations List */}
+      {/* Question Sets List */}
       <div className="bg-white shadow-md rounded-lg overflow-hidden mb-8">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">All Evaluations</h2>
+          <h2 className="text-xl font-semibold text-gray-900">All Question Sets</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -517,7 +519,7 @@ const AdminWeeklyEvaluations = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Create Weekly Evaluation</h3>
+              <h3 className="text-lg font-semibold">Create Weekly Question Set</h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -608,7 +610,7 @@ const AdminWeeklyEvaluations = () => {
                   type="submit"
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
-                  Create Evaluation
+                  Create Question Set
                 </button>
               </div>
             </form>

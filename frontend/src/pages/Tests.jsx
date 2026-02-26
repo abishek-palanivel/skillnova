@@ -90,8 +90,19 @@ const Tests = () => {
 
   const handleStartAssessment = async (type) => {
     try {
-      // Navigate to assessment taking page
-      window.location.href = `/assessment/${type}`;
+      // Show confirmation popup
+      const confirmed = window.confirm(
+        `Are you ready to start the ${type} assessment?\n\n` +
+        `⏱️ Duration: ${type === 'initial' ? '60' : '90'} minutes\n` +
+        `📝 Questions: 20\n` +
+        `⚠️ Once started, the timer cannot be paused.\n\n` +
+        `Click OK to begin or Cancel to prepare more.`
+      );
+      
+      if (confirmed) {
+        // Navigate to assessment taking page
+        window.location.href = `/assessment/${type}`;
+      }
     } catch (error) {
       toast.error(`Failed to start ${type} assessment`);
     }
@@ -99,8 +110,20 @@ const Tests = () => {
 
   const handleStartRecommendedTest = async (testId) => {
     try {
-      // In a real implementation, this would start the specific test
-      toast.success('Starting recommended test...');
+      // Show confirmation popup
+      const confirmed = window.confirm(
+        `Ready to start this test?\n\n` +
+        `⏱️ Duration: 30 minutes\n` +
+        `📝 Questions: 20\n` +
+        `⚠️ Timer starts immediately.\n\n` +
+        `Click OK to begin.`
+      );
+      
+      if (confirmed) {
+        toast.success('Starting recommended test...');
+        // Navigate to practice questions page (recommended tests use practice system)
+        window.location.href = `/practice`;
+      }
     } catch (error) {
       toast.error('Failed to start test');
     }
@@ -108,8 +131,20 @@ const Tests = () => {
 
   const handleStartCourseAssessment = async (courseId) => {
     try {
-      // Navigate to course assessment
-      window.location.href = `/assessment/course/${courseId}`;
+      // Show confirmation popup
+      const confirmed = window.confirm(
+        `Ready to take the course assessment?\n\n` +
+        `⏱️ Duration: 90 minutes\n` +
+        `📝 Questions: 15\n` +
+        `🎓 Pass: 75% required for certificate\n` +
+        `⚠️ Timer starts immediately.\n\n` +
+        `Click OK to begin.`
+      );
+      
+      if (confirmed) {
+        // Navigate to course assessment
+        window.location.href = `/assessment/course/${courseId}`;
+      }
     } catch (error) {
       toast.error('Failed to start course assessment');
     }

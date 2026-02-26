@@ -22,34 +22,54 @@ def generate_room_id():
 @jwt_required()
 def initiate_video_call():
     """Initiate a video call with real-time notification"""
+    print("=" * 50)
+    print("🎥 VIDEO CALL INITIATION")
+    print("=" * 50)
     try:
         from notification_service import notification_service
         
         current_user_id = get_jwt_identity()
+        print(f"Current user ID: {current_user_id}")
+        
+        # Convert to UUID if string
+        if isinstance(current_user_id, str):
+            current_user_id = uuid.UUID(current_user_id)
+        
         current_user = User.query.get(current_user_id)
         
         if not current_user:
+            print(f"❌ Current user not found: {current_user_id}")
             return jsonify({
                 'success': False,
                 'message': 'User not found'
             }), 404
         
+        print(f"Current user: {current_user.name} (Admin: {current_user.is_admin}, Mentor: {current_user.is_mentor})")
+        
         data = request.get_json()
+        print(f"Request data: {data}")
+        
         participant_id = data.get('participant_id')
         participant_email = data.get('participant_email')
         
         # Find participant by ID or email
         participant = None
         if participant_id:
+            # Convert to UUID if string
+            if isinstance(participant_id, str):
+                participant_id = uuid.UUID(participant_id)
             participant = User.query.get(participant_id)
         elif participant_email:
             participant = User.query.filter_by(email=participant_email.lower().strip()).first()
         
         if not participant:
+            print(f"❌ Participant not found: {participant_id or participant_email}")
             return jsonify({
                 'success': False,
                 'message': 'Participant not found'
             }), 404
+        
+        print(f"Participant: {participant.name} (Admin: {participant.is_admin}, Mentor: {participant.is_mentor})")
         
         # Determine call type
         if current_user.is_admin and participant.is_mentor:
@@ -60,24 +80,45 @@ def initiate_video_call():
             call_type = 'mentor_user'
         elif not current_user.is_mentor and not current_user.is_admin and participant.is_mentor:
             call_type = 'mentor_user'
+        elif not current_user.is_mentor and not current_user.is_admin and participant.is_admin:
+            call_type = 'admin_user'
+        elif current_user.is_mentor and participant.is_admin:
+            call_type = 'admin_mentor'
         else:
+            print(f"❌ Invalid call type - Current: Admin={current_user.is_admin}, Mentor={current_user.is_mentor} | Participant: Admin={participant.is_admin}, Mentor={participant.is_mentor}")
             return jsonify({
                 'success': False,
                 'message': 'Invalid call type'
             }), 400
         
+        print(f"Call type determined: {call_type}")
+        
         # Check if there's already an active call between these users
+        # Convert both IDs to UUID for proper comparison
+        current_user_uuid = current_user_id if isinstance(current_user_id, uuid.UUID) else uuid.UUID(str(current_user_id))
+        participant_uuid = participant.id if isinstance(participant.id, uuid.UUID) else uuid.UUID(str(participant.id))
+        
         existing_call = VideoCall.query.filter(
-            ((VideoCall.initiator_id == current_user_id) & (VideoCall.participant_id == str(participant.id))) |
-            ((VideoCall.initiator_id == str(participant.id)) & (VideoCall.participant_id == current_user_id)),
+            db.or_(
+                db.and_(
+                    VideoCall.initiator_id == current_user_uuid,
+                    VideoCall.participant_id == participant_uuid
+                ),
+                db.and_(
+                    VideoCall.initiator_id == participant_uuid,
+                    VideoCall.participant_id == current_user_uuid
+                )
+            ),
             VideoCall.status.in_(['waiting', 'active'])
         ).first()
         
         if existing_call:
+            print(f"⚠️ Existing active call found: {existing_call.id} - Status: {existing_call.status}")
             return jsonify({
                 'success': False,
                 'message': 'There is already an active call between these users',
                 'existing_call': {
+                    'id': str(existing_call.id),
                     'room_id': existing_call.room_id,
                     'status': existing_call.status
                 }
@@ -97,19 +138,39 @@ def initiate_video_call():
         db.session.add(video_call)
         db.session.flush()  # Get the call ID
         
-        # Create notification for participant
-        notification_result = notification_service.create_video_call_notification(
+        print(f"✅ Video call created: {video_call.id}")
+        
+        # Create notification for participant (the person being called)
+        participant_notification = notification_service.create_video_call_notification(
             user_id=str(participant.id),
             caller_name=current_user.name,
             call_id=str(video_call.id),
             room_id=room_id
         )
         
+        print(f"📧 Participant notification created: {participant_notification['success']}")
+        
+        # Create notification for initiator (confirmation that call was initiated)
+        initiator_notification = notification_service.create_notification(
+            user_id=str(current_user.id),
+            notification_type='video_call',
+            title='Video Call Initiated',
+            message=f'Calling {participant.name}... Waiting for response',
+            data={
+                'call_id': str(video_call.id),
+                'room_id': room_id,
+                'participant_name': participant.name,
+                'type': 'outgoing_call'
+            }
+        )
+        
+        print(f"📧 Initiator notification created: {initiator_notification['success']}")
+        
         db.session.commit()
         
         return jsonify({
             'success': True,
-            'message': 'Video call initiated successfully and notification sent',
+            'message': 'Video call initiated successfully and notifications sent',
             'call': {
                 'id': str(video_call.id),
                 'room_id': room_id,
@@ -129,11 +190,18 @@ def initiate_video_call():
                 },
                 'created_at': video_call.created_at.isoformat()
             },
-            'notification_sent': notification_result['success']
+            'notifications_sent': {
+                'participant': participant_notification['success'],
+                'initiator': initiator_notification['success']
+            }
         }), 201
         
     except Exception as e:
         db.session.rollback()
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"❌ Video call initiation error: {str(e)}")
+        print(f"Full traceback:\n{error_trace}")
         return jsonify({
             'success': False,
             'message': f'Failed to initiate video call: {str(e)}'
@@ -638,6 +706,25 @@ def accept_call(call_id):
         video_call.status = 'active'
         video_call.started_at = datetime.utcnow()
         
+        # Get initiator info
+        initiator = User.query.get(video_call.initiator_id)
+        current_user = User.query.get(current_user_id)
+        
+        # Notify initiator that call was accepted
+        if initiator:
+            from notification_service import notification_service
+            notification_service.create_notification(
+                user_id=str(initiator.id),
+                notification_type='video_call',
+                title='Call Accepted',
+                message=f'{current_user.name if current_user else "User"} accepted your call',
+                data={
+                    'call_id': str(video_call.id),
+                    'room_id': video_call.room_id,
+                    'type': 'call_accepted'
+                }
+            )
+        
         db.session.commit()
         
         return jsonify({
@@ -683,6 +770,24 @@ def reject_call(call_id):
         # Update call status to rejected
         video_call.status = 'rejected'
         video_call.ended_at = datetime.utcnow()
+        
+        # Get initiator info
+        initiator = User.query.get(video_call.initiator_id)
+        current_user = User.query.get(current_user_id)
+        
+        # Notify initiator that call was rejected
+        if initiator:
+            from notification_service import notification_service
+            notification_service.create_notification(
+                user_id=str(initiator.id),
+                notification_type='video_call',
+                title='Call Declined',
+                message=f'{current_user.name if current_user else "User"} declined your call',
+                data={
+                    'call_id': str(video_call.id),
+                    'type': 'call_rejected'
+                }
+            )
         
         db.session.commit()
         

@@ -108,7 +108,7 @@ const EvaluationScores = () => {
   const InstantScoreDisplay = ({ score }) => (
     <div className="mb-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg text-white p-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">🎉 Evaluation Completed!</h2>
+        <h2 className="text-2xl font-bold mb-2">🎉 Questions Completed!</h2>
         <p className="text-blue-100 mb-4">Your score is available instantly</p>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
@@ -143,9 +143,9 @@ const EvaluationScores = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Evaluation Scores</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Question Scores</h1>
         <p className="mt-2 text-gray-600">
-          View your weekly evaluation results and feedback
+          View your weekly question results and feedback
         </p>
       </div>
 
@@ -171,16 +171,16 @@ const EvaluationScores = () => {
           <div className="px-6 py-12 text-center">
             <div className="text-6xl mb-4">📊</div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              No Evaluation Scores Yet
+              No Question Scores Yet
             </h2>
             <p className="text-gray-600 mb-6">
-              You haven't completed any weekly evaluations yet. Take your first evaluation to see your scores here.
+              You haven't completed any weekly questions yet. Take your first question set to see your scores here.
             </p>
             <button
               onClick={() => window.location.href = '/weekly-evaluation'}
               className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
             >
-              Take Evaluation
+              Take Questions
             </button>
           </div>
         </div>
@@ -190,7 +190,7 @@ const EvaluationScores = () => {
           <div className="lg:col-span-1">
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Your Evaluations</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Your Question Sets</h2>
               </div>
               <div className="divide-y divide-gray-200">
                 {scores.map((score) => (
@@ -246,10 +246,10 @@ const EvaluationScores = () => {
                 <div className="px-6 py-12 text-center">
                   <div className="text-4xl mb-4">👈</div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Select an Evaluation
+                    Select a Question Set
                   </h3>
                   <p className="text-gray-600">
-                    Click on an evaluation from the list to view detailed results and feedback.
+                    Click on a question set from the list to view detailed results and feedback.
                   </p>
                 </div>
               </div>

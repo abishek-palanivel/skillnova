@@ -40,7 +40,7 @@ import AdminQuestions from './pages/admin/AdminQuestions';
 import AdminReports from './pages/admin/AdminReports';
 import AdminWeeklyEvaluations from './pages/admin/AdminWeeklyEvaluations';
 
-// Weekly Evaluation Pages
+// Weekly Questions Pages
 import WeeklyEvaluation from './pages/WeeklyEvaluation';
 import EvaluationTaking from './pages/EvaluationTaking';
 import EvaluationScores from './pages/EvaluationScores';
@@ -51,6 +51,7 @@ import MentorProfile from './pages/mentor/MentorProfile';
 import MentorChats from './pages/mentor/MentorChats';
 import MentorSessions from './pages/mentor/MentorSessions';
 import MentorStudents from './pages/mentor/MentorStudents';
+import MentorBookings from './pages/mentor/MentorBookings';
 
 // Video Call Pages
 import VideoCall from './pages/VideoCall';
@@ -222,6 +223,11 @@ function AppContent() {
               <Tests />
             </ProtectedRoute>
           } />
+          <Route path="/test/:testId" element={
+            <ProtectedRoute>
+              <TestTaking />
+            </ProtectedRoute>
+          } />
 
           <Route path="/profile" element={
             <ProtectedRoute>
@@ -229,7 +235,7 @@ function AppContent() {
             </ProtectedRoute>
           } />
           
-          {/* Weekly Evaluation Routes */}
+          {/* Weekly Questions Routes */}
           <Route path="/weekly-evaluation" element={
             <ProtectedRoute>
               <WeeklyEvaluation />
@@ -280,11 +286,18 @@ function AppContent() {
               <MentorSessions />
             </ProtectedRoute>
           } />
+
           <Route path="/mentor/students" element={
             <ProtectedRoute mentorOnly>
               <MentorStudents />
             </ProtectedRoute>
           } />
+          <Route path="/mentor/bookings" element={
+            <ProtectedRoute mentorOnly>
+              <MentorBookings />
+            </ProtectedRoute>
+          } />
+
 
           
           {/* Admin Routes */}

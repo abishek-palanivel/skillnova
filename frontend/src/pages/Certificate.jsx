@@ -61,9 +61,12 @@ const Certificate = () => {
 
   const handleDownload = async (certificateNumber) => {
     try {
-      const response = await fetch(`/api/tests/certificates/download/${certificateNumber}`);
-      if (response.ok) {
-        const blob = await response.blob();
+      const response = await api.get(`/tests/certificates/download/${certificateNumber}`, {
+        responseType: 'blob'
+      });
+      
+      if (response.data) {
+        const blob = new Blob([response.data], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -77,7 +80,8 @@ const Certificate = () => {
         throw new Error('Download failed');
       }
     } catch (error) {
-      toast.error('Failed to download certificate');
+      console.error('Download error:', error);
+      toast.error('Failed to download certificate. Please try again.');
     }
   };
 

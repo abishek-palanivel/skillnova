@@ -76,19 +76,39 @@ const MentorStudents = () => {
 
   const startChat = async (studentId) => {
     try {
+      const student = students.find(s => s.id === studentId);
       const response = await api.post('/chat/rooms', {
         target_user_id: studentId,
-        room_type: 'user_mentor',
-        title: 'Mentoring Chat'
+        title: `Chat with ${student?.name || 'Student'}`
       });
       
       if (response.data.success) {
-        navigate('/mentor/chats');
-        toast.success('Chat started successfully');
+        const roomId = response.data.room?.id || response.data.room_id;
+        
+        if (roomId) {
+          // Navigate to chats page with the room ID
+          navigate('/mentor/chats', { 
+            state: { 
+              roomId: roomId,
+              studentName: student?.name 
+            }
+          });
+          toast.success(`Chat opened with ${student?.name || 'student'}!`, { icon: '💬' });
+        } else {
+          // Just navigate to chats page
+          navigate('/mentor/chats');
+          toast.success('Opening chats...', { icon: '💬' });
+        }
       }
     } catch (error) {
       console.error('Failed to start chat:', error);
-      toast.error('Failed to start chat');
+      // If room already exists (409), that's fine - just navigate to chats
+      if (error.response?.status === 409 || error.response?.status === 200) {
+        navigate('/mentor/chats');
+        toast.success('Chat is ready! Check your chats.', { icon: '💬' });
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to start chat. Please try again.');
+      }
     }
   };
 
@@ -114,21 +134,26 @@ const MentorStudents = () => {
   const sendEmail = async (studentId) => {
     try {
       const student = students.find(s => s.id === studentId);
-      if (student) {
-        const response = await api.post('/mentor-portal/send-email', {
-          recipient_email: student.email,
-          recipient_name: student.name,
-          subject: 'Mentoring Session Follow-up',
-          message: `Hello ${student.name},\n\nI hope you're doing well. I wanted to follow up on our mentoring sessions and see if you have any questions or need additional support.\n\nBest regards,\nYour Mentor`
-        });
+      if (student && student.email) {
+        // Open default email client with pre-filled information
+        const subject = encodeURIComponent('Mentoring Session Follow-up');
+        const body = encodeURIComponent(
+          `Hello ${student.name},\n\n` +
+          `I hope you're doing well. I wanted to follow up on our mentoring sessions and see if you have any questions or need additional support.\n\n` +
+          `Best regards,\n` +
+          `Your Mentor`
+        );
         
-        if (response.data.success) {
-          toast.success('Email sent successfully');
-        }
+        // Open email client
+        window.location.href = `mailto:${student.email}?subject=${subject}&body=${body}`;
+        
+        toast.success('Opening email client...');
+      } else {
+        toast.error('Student email not found');
       }
     } catch (error) {
-      console.error('Failed to send email:', error);
-      toast.error('Failed to send email');
+      console.error('Failed to open email:', error);
+      toast.error('Failed to open email client');
     }
   };
 

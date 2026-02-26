@@ -71,8 +71,8 @@ def get_practice_questions():
     try:
         # Get query parameters
         difficulty = request.args.get('difficulty')
-        category = request.args.get('category')
-        question_type = request.args.get('type')
+        category = request.args.get('category', 'Programming')  # Default category
+        question_type = request.args.get('type', 'multiple_choice')
         limit = int(request.args.get('limit', 20))
         
         # Build query - prioritize AI-created questions
@@ -88,19 +88,65 @@ def get_practice_questions():
         # Order by creation date (newest first) to show AI-created questions first
         questions = query.order_by(Question.created_at.desc()).limit(limit).all()
         
-        # If no questions found, return empty list instead of default data
+        # If no questions found, generate them using AI
         if not questions:
-            return jsonify({
-                'success': True,
-                'questions': [],
-                'message': 'No practice questions available. Admin needs to create questions.',
-                'filters': {
-                    'difficulty': difficulty,
-                    'category': category,
-                    'type': question_type,
-                    'limit': limit
-                }
-            }), 200
+            print(f"No practice questions found. Generating AI questions for category: {category}")
+            from ai_question_generator import ai_question_generator
+            
+            # Generate questions based on requested difficulty or mix
+            difficulties_to_generate = []
+            if difficulty:
+                difficulties_to_generate = [difficulty] * min(10, limit)
+            else:
+                # Mix of difficulties
+                difficulties_to_generate = ['easy'] * 3 + ['medium'] * 4 + ['hard'] * 3
+            
+            for diff in difficulties_to_generate:
+                try:
+                    question_data = ai_question_generator.generate_question(
+                        question_type, diff, category
+                    )
+                    
+                    new_question = Question(
+                        question_text=question_data['question_text'],
+                        question_type=question_type,
+                        difficulty_level=diff,
+                        category=category,
+                        correct_answer=question_data.get('correct_answer'),
+                        options=question_data.get('options'),
+                        explanation=question_data.get('explanation'),
+                        is_active=True
+                    )
+                    db.session.add(new_question)
+                except Exception as gen_error:
+                    print(f"Error generating practice question: {gen_error}")
+                    continue
+            
+            db.session.commit()
+            
+            # Reload questions
+            query = Question.query.filter_by(is_active=True)
+            if difficulty:
+                query = query.filter_by(difficulty_level=difficulty)
+            if category:
+                query = query.filter_by(category=category)
+            if question_type:
+                query = query.filter_by(question_type=question_type)
+            
+            questions = query.order_by(Question.created_at.desc()).limit(limit).all()
+            
+            if not questions:
+                return jsonify({
+                    'success': True,
+                    'questions': [],
+                    'message': 'Failed to generate practice questions. Please try again.',
+                    'filters': {
+                        'difficulty': difficulty,
+                        'category': category,
+                        'type': question_type,
+                        'limit': limit
+                    }
+                }), 200
         
         questions_data = []
         for question in questions:

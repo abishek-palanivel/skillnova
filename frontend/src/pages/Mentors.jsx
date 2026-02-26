@@ -4,14 +4,11 @@ import api from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
   Users, 
-  Star, 
   Clock, 
-  DollarSign,
   MessageCircle,
   Calendar,
   Filter,
   Search,
-  Sparkles,
   Award
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -55,14 +52,43 @@ const Mentors = () => {
     }
   };
 
-  const handleBookSession = async (mentorId) => {
+  const handleBookSession = async (mentorId, mentorName) => {
     try {
-      const response = await api.post(`/mentors/${mentorId}/book-session`);
+      const response = await api.post(`/mentors/${mentorId}/book-session`, {
+        duration_minutes: 60
+      });
       if (response.data.success) {
-        toast.success('Session booking request sent!');
+        toast.success(`Session request sent to ${mentorName}! They will contact you soon.`);
+        // Don't navigate anywhere - stay on mentors page
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to book session');
+      console.error('Book session error:', error);
+      toast.error(error.response?.data?.message || 'Failed to book session. Please try again.');
+    }
+  };
+
+  const handleMessage = async (mentorId, mentorName) => {
+    try {
+      // Create a chat room with the mentor
+      const response = await api.post('/chat/rooms', {
+        target_user_id: mentorId,
+        title: `Chat with ${mentorName}`
+      });
+      
+      if (response.data.success) {
+        toast.success(`Chat opened with ${mentorName}! Check the chat widget.`, { icon: '💬' });
+        // The chat widget will automatically show the new room
+      } else {
+        toast.error(response.data.message || 'Failed to open chat');
+      }
+    } catch (error) {
+      console.error('Message error:', error);
+      // If room already exists, that's fine
+      if (error.response?.status === 409) {
+        toast.success(`Chat with ${mentorName} is ready! Check the chat widget.`, { icon: '💬' });
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to open chat. Please try again.');
+      }
     }
   };
 
@@ -94,84 +120,7 @@ const Mentors = () => {
           </p>
         </div>
 
-        {/* AI Recommendations Section */}
-        {recommendations.length > 0 && showRecommendations && (
-          <div className="mb-8">
-            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6 border border-green-200">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-6 h-6 text-green-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Perfect Mentors for You
-                  </h2>
-                </div>
-                <button
-                  onClick={() => setShowRecommendations(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ×
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {recommendations.slice(0, 6).map((mentor, index) => (
-                  <div key={index} className="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                        <Users className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{mentor.name}</h3>
-                        <p className="text-sm text-gray-600">{mentor.expertise}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-1">
-                          <Award className="w-4 h-4 text-gray-500" />
-                          <span>{mentor.experience_years} years exp</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span>{mentor.rating}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-1">
-                          <MessageCircle className="w-4 h-4 text-gray-500" />
-                          <span>{mentor.sessions_completed} sessions</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <DollarSign className="w-4 h-4 text-gray-500" />
-                          <span>${mentor.hourly_rate}/hr</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">
-                        {mentor.match_score}% match
-                      </span>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4 text-green-500" />
-                        <span className="text-sm text-green-600">{mentor.availability}</span>
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={() => handleBookSession(mentor.id)}
-                      className="w-full mt-3 px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
-                    >
-                      Book Session
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Search and Filter */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4">
@@ -182,7 +131,7 @@ const Mentors = () => {
               placeholder="Search mentors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           
@@ -191,7 +140,7 @@ const Mentors = () => {
             <select
               value={selectedExpertise}
               onChange={(e) => setSelectedExpertise(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               {expertiseAreas.map(area => (
                 <option key={area} value={area}>
@@ -206,36 +155,35 @@ const Mentors = () => {
         {filteredMentors.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredMentors.map((mentor) => (
-              <div key={mentor.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-                <div className="p-6">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-accent-500 rounded-full flex items-center justify-center">
-                      <Users className="w-8 h-8 text-white" />
+              <div key={mentor.id} className="bg-white border border-gray-200 shadow-lg rounded-xl hover:shadow-xl transition-all duration-300 hover:scale-105 overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-1">
+                  <div className="bg-white rounded-lg p-6">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Users className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">{mentor.name}</h3>
+                        <div className="bg-gradient-to-r from-blue-100 to-purple-100 px-3 py-1 rounded-full">
+                          <p className="text-sm font-medium text-blue-800">{mentor.expertise}</p>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{mentor.name}</h3>
-                      <p className="text-gray-600">{mentor.expertise}</p>
-                    </div>
-                  </div>
                   
                   <div className="space-y-3 mb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <Award className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
+                        <Award className="w-4 h-4 text-blue-500" />
+                        <span className="text-sm text-gray-700 font-medium">
                           {mentor.experience_years} years experience
                         </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-sm font-medium">{mentor.rating > 0 ? mentor.rating.toFixed(1) : 'New'}</span>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <MessageCircle className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
+                        <MessageCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-sm text-gray-700">
                           {mentor.sessions_completed > 0 ? `${mentor.sessions_completed} sessions completed` : 'New mentor'}
                         </span>
                       </div>
@@ -243,31 +191,30 @@ const Mentors = () => {
                     
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <DollarSign className="w-4 h-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
-                          {mentor.hourly_rate > 0 ? `$${mentor.hourly_rate}/hour` : 'Rate not set'}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4 text-green-500" />
-                        <span className="text-sm text-green-600">
-                          {mentor.is_available ? 'Available' : 'Busy'}
+                        <Clock className="w-4 h-4 text-emerald-500" />
+                        <span className={`text-sm font-medium ${mentor.is_available ? 'text-emerald-600' : 'text-orange-600'}`}>
+                          {mentor.is_available ? '🟢 Available now' : '🟡 Busy'}
                         </span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleBookSession(mentor.id)}
-                      className="flex-1 btn-primary flex items-center justify-center space-x-2"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      <span>Book Session</span>
-                    </button>
-                    <button className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-                      <MessageCircle className="w-4 h-4 text-gray-600" />
-                    </button>
+                    <div className="flex space-x-3 mt-6">
+                      <button
+                        onClick={() => handleBookSession(mentor.id, mentor.name)}
+                        className="flex-1 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                      >
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-semibold">Book Session</span>
+                      </button>
+                      <button 
+                        onClick={() => handleMessage(mentor.user_id || mentor.id, mentor.name)}
+                        className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                        title="Send Message"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

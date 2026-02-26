@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-AI Question Generator Service
-This service generates questions using AI based on type, difficulty, and category
+AI Question Generator Service with Google Gemini Integration (FREE)
+This service generates questions using Gemini models based on type, difficulty, and category
 """
 
 import json
 import random
+import os
 from typing import Dict, List, Any
+from openai_service import gemini_service
 
 class AIQuestionGenerator:
-    """AI-powered question generator"""
+    """AI-powered question generator using Google Gemini"""
     
     def __init__(self):
         # Question templates and patterns for different categories
@@ -164,7 +166,95 @@ class AIQuestionGenerator:
         }
     
     def generate_question(self, question_type: str, difficulty: str, category: str) -> Dict[str, Any]:
-        """Generate a question based on type, difficulty, and category"""
+        """Generate a question using Google Gemini or fallback to templates"""
+        try:
+            # Try Gemini AI generation first
+            if os.getenv('GEMINI_API_KEY'):
+                ai_question = self._generate_with_openai(question_type, difficulty, category)
+                if ai_question:
+                    return ai_question
+            
+            # Fallback to template-based generation
+            return self._generate_with_templates(question_type, difficulty, category)
+        except Exception as e:
+            print(f"Error generating question: {e}")
+            return self._generate_with_templates(question_type, difficulty, category)
+    
+    def _generate_with_openai(self, question_type: str, difficulty: str, category: str) -> Dict[str, Any]:
+        """Generate question using Google Gemini for ANY topic"""
+        try:
+            if question_type.lower() == 'multiple_choice':
+                prompt = f"""Generate a {difficulty} level multiple choice question about {category}.
+
+The question should be educational, accurate, and relevant to {category} regardless of whether it's a programming language, software tool, design tool, or any other topic.
+
+Provide a JSON response with:
+- question_text: the question (make it specific to {category})
+- options: object with keys A, B, C, D and their text values
+- correct_answer: the correct option letter (A, B, C, or D)
+- explanation: why the correct answer is right (1-2 sentences)
+
+Make it educational and accurate. Format: {{"question_text": "...", "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}}, "correct_answer": "A", "explanation": "..."}}"""
+            
+            elif question_type.lower() == 'coding':
+                prompt = f"""Generate a {difficulty} level coding/practical question about {category}.
+
+The question should be relevant to {category} - if it's a programming language, create a coding problem. If it's a design tool like AutoCAD, create a practical task or scenario question.
+
+Provide a JSON response with:
+- question_text: the problem description (adapt to the topic - code for programming, practical task for tools)
+- sample_input: example input or scenario
+- sample_output: expected output or result
+- explanation: hints or approach (2-3 sentences)
+- test_cases: array of 3 test cases with input and expected_output (or scenarios and expected results)
+
+Format: {{"question_text": "...", "sample_input": "...", "sample_output": "...", "explanation": "...", "test_cases": [...]}}"""
+            
+            else:  # essay
+                prompt = f"""Generate a {difficulty} level essay question about {category}.
+
+Provide a JSON response with:
+- question_text: the essay question
+- key_points: array of 3-4 key points that should be covered
+- explanation: what makes a good answer (2-3 sentences)
+
+Format: {{"question_text": "...", "key_points": [...], "explanation": "..."}}"""
+            
+            system_message = f"You are an expert educator creating {difficulty} level {category} questions. You can create questions for ANY topic including programming languages, design tools (AutoCAD, Photoshop, etc.), frameworks, databases, or any other subject. Always respond with valid JSON."
+            
+            result = gemini_service.generate_json_completion(prompt, system_message, temperature=0.8)
+            
+            if result:
+                # Format the response
+                formatted_result = {
+                    'question_text': result.get('question_text', ''),
+                    'question_type': question_type.lower(),
+                    'difficulty_level': difficulty,
+                    'category': category
+                }
+                
+                if question_type.lower() == 'multiple_choice':
+                    formatted_result['options'] = result.get('options', {})
+                    formatted_result['correct_answer'] = result.get('correct_answer', 'A')
+                    formatted_result['explanation'] = result.get('explanation', '')
+                elif question_type.lower() == 'coding':
+                    formatted_result['sample_input'] = result.get('sample_input', '')
+                    formatted_result['sample_output'] = result.get('sample_output', '')
+                    formatted_result['test_cases'] = result.get('test_cases', [])
+                    formatted_result['explanation'] = result.get('explanation', '')
+                else:
+                    formatted_result['key_points'] = result.get('key_points', [])
+                    formatted_result['explanation'] = result.get('explanation', '')
+                
+                return formatted_result
+            
+            return None
+        except Exception as e:
+            print(f"OpenAI question generation error: {e}")
+            return None
+    
+    def _generate_with_templates(self, question_type: str, difficulty: str, category: str) -> Dict[str, Any]:
+        """Fallback template-based generation"""
         try:
             # Normalize inputs
             difficulty = difficulty.lower()
@@ -278,33 +368,51 @@ class AIQuestionGenerator:
             return f"Sample answer for this {category.replace('_', ' ')} question would include key concepts and explanations."
     
     def _generate_fallback_question(self, question_type: str, difficulty: str, category: str) -> Dict[str, Any]:
-        """Generate a fallback question when templates are not available"""
-        question_text = f"What is an important concept in {category} at {difficulty} level?"
+        """Generate a fallback question for ANY topic when templates are not available"""
+        # Clean up category name
+        category_display = category.replace('_', ' ').title()
         
         if question_type.lower() == 'multiple_choice':
+            question_text = f"Which of the following is a key concept in {category_display}?"
             options = {
-                'A': f'Concept A in {category}',
-                'B': f'Concept B in {category}',
-                'C': f'Concept C in {category}',
-                'D': f'Concept D in {category}'
+                'A': f'Basic fundamentals of {category_display}',
+                'B': f'Advanced techniques in {category_display}',
+                'C': f'Common tools used in {category_display}',
+                'D': f'Best practices for {category_display}'
             }
             return {
                 'question_text': question_text,
                 'question_type': 'multiple_choice',
                 'difficulty_level': difficulty,
-                'category': category,
+                'category': category_display,
                 'correct_answer': 'A',
                 'options': options,
-                'explanation': f'This is a {difficulty} level question about {category}.'
+                'explanation': f'Understanding the fundamentals is essential for mastering {category_display}.'
+            }
+        elif question_type.lower() == 'coding':
+            question_text = f"Create a practical solution or demonstration related to {category_display} at {difficulty} level."
+            return {
+                'question_text': question_text,
+                'question_type': 'coding',
+                'difficulty_level': difficulty,
+                'category': category_display,
+                'correct_answer': f'# Solution for {category_display}\n# Implement your solution here',
+                'explanation': f'This is a {difficulty} level practical question about {category_display}. Focus on demonstrating your understanding of core concepts.',
+                'test_cases': [
+                    {'input': 'Example scenario 1', 'expected_output': 'Expected result 1'},
+                    {'input': 'Example scenario 2', 'expected_output': 'Expected result 2'},
+                    {'input': 'Example scenario 3', 'expected_output': 'Expected result 3'}
+                ]
             }
         else:
+            question_text = f"Explain an important concept or technique in {category_display}."
             return {
                 'question_text': question_text,
                 'question_type': question_type.lower(),
                 'difficulty_level': difficulty,
-                'category': category,
-                'correct_answer': f'Sample answer for {category} question.',
-                'explanation': f'This is a {difficulty} level {question_type} question about {category}.'
+                'category': category_display,
+                'correct_answer': f'Sample answer for {category_display} question.',
+                'explanation': f'This is a {difficulty} level {question_type} question about {category_display}.'
             }
 
 # Global instance

@@ -71,64 +71,72 @@ const MentorDashboard = () => {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg border border-blue-200 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Calendar className="h-8 w-8 text-blue-600" />
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg">
+                  <Calendar className="h-6 w-6 text-white" />
+                </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">{statistics.total_sessions}</p>
+                <p className="text-sm font-semibold text-blue-700">Total Sessions</p>
+                <p className="text-2xl font-bold text-blue-900">{statistics.total_sessions}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl shadow-lg border border-emerald-200 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+                <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg shadow-lg">
+                  <CheckCircle className="h-6 w-6 text-white" />
+                </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{statistics.completed_sessions}</p>
+                <p className="text-sm font-semibold text-emerald-700">Completed</p>
+                <p className="text-2xl font-bold text-emerald-900">{statistics.completed_sessions}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-lg border border-purple-200 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Clock className="h-8 w-8 text-yellow-600" />
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Scheduled</p>
-                <p className="text-2xl font-bold text-gray-900">{statistics.pending_sessions}</p>
+                <p className="text-sm font-semibold text-purple-700">Scheduled</p>
+                <p className="text-2xl font-bold text-purple-900">{statistics.pending_sessions}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-lg border border-orange-200 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <Star className="h-8 w-8 text-purple-600" />
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Avg Rating</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {statistics.rating > 0 ? statistics.rating.toFixed(1) : 'N/A'}
-                </p>
+                <p className="text-sm font-semibold text-orange-700">Students</p>
+                <p className="text-2xl font-bold text-orange-900">{statistics.total_students}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-lg border border-indigo-200 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <TrendingUp className="h-8 w-8 text-indigo-600" />
+                <div className="p-3 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg">
+                  <MessageCircle className="h-6 w-6 text-white" />
+                </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Reviews</p>
-                <p className="text-2xl font-bold text-gray-900">{statistics.total_reviews || 0}</p>
+                <p className="text-sm font-semibold text-indigo-700">Active Chats</p>
+                <p className="text-2xl font-bold text-indigo-900">{statistics.active_chats || 0}</p>
               </div>
             </div>
           </div>
@@ -194,7 +202,29 @@ const MentorDashboard = () => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <button
+                  onClick={() => navigate('/mentor/bookings')}
+                  className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Calendar className="w-6 h-6 text-orange-600" />
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900">Bookings</p>
+                    <p className="text-sm text-gray-600">{statistics.pending_sessions} pending</p>
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => navigate('/mentor/sessions')}
+                  className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900">Sessions</p>
+                    <p className="text-sm text-gray-600">{statistics.completed_sessions} completed</p>
+                  </div>
+                </button>
+                
                 <button
                   onClick={() => navigate('/mentor/chats')}
                   className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -212,19 +242,8 @@ const MentorDashboard = () => {
                 >
                   <Video className="w-6 h-6 text-red-600" />
                   <div className="text-left">
-                    <p className="font-medium text-gray-900">Start Video Call</p>
+                    <p className="font-medium text-gray-900">Video Call</p>
                     <p className="text-sm text-gray-600">Call students</p>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => navigate('/mentor/sessions')}
-                  className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Calendar className="w-6 h-6 text-green-600" />
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900">Sessions</p>
-                    <p className="text-sm text-gray-600">Manage schedule</p>
                   </div>
                 </button>
                 

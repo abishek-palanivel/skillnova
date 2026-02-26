@@ -77,7 +77,9 @@ const Courses = () => {
   const handleEnroll = async (courseId, courseTitle) => {
     // Check if already enrolled to prevent unnecessary API call
     if (enrolledCourses.includes(courseId)) {
-      toast.error(`You are already enrolled in ${courseTitle}`);
+      toast.success(`Already enrolled! Opening ${courseTitle}...`);
+      // Navigate to course detail page
+      setTimeout(() => navigate(`/courses/${courseId}`), 500);
       return;
     }
 
@@ -87,12 +89,16 @@ const Courses = () => {
         toast.success(`Successfully enrolled in ${courseTitle}!`);
         // Update enrolled courses list
         setEnrolledCourses(prev => [...prev, courseId]);
+        // Navigate to course detail page after enrollment
+        setTimeout(() => navigate(`/courses/${courseId}`), 1000);
       }
     } catch (error) {
       if (error.response?.status === 409) {
-        toast.error(`You are already enrolled in ${courseTitle}`);
+        toast.success(`Already enrolled! Opening ${courseTitle}...`);
         // Update local state to reflect enrollment
         setEnrolledCourses(prev => [...prev, courseId]);
+        // Navigate to course detail page
+        setTimeout(() => navigate(`/courses/${courseId}`), 500);
       } else {
         toast.error(error.response?.data?.message || 'Failed to enroll in course');
       }
@@ -290,19 +296,29 @@ const Courses = () => {
                     <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded-full">
                       {course.skill_level}
                     </span>
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="text-sm text-gray-600">4.8</span>
-                    </div>
                   </div>
                   
                   <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                     {course.title}
                   </h3>
                   
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-3">
                     {course.description || 'Learn essential skills and advance your career with this comprehensive course.'}
                   </p>
+                  
+                  <div className="mb-4">
+                    {isEnrolled(course.id) ? (
+                      <div className="flex items-center space-x-2 text-green-600">
+                        <CheckCircle className="w-5 h-5" />
+                        <span className="font-medium">Enrolled - Free Course</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2 text-blue-600">
+                        <Sparkles className="w-5 h-5" />
+                        <span className="font-semibold">Free Course</span>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                     <div className="flex items-center space-x-1">

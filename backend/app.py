@@ -147,37 +147,79 @@ def create_admin_user():
 
 # Import and register blueprints after app context is ready
 def register_blueprints():
-    from routes.auth import auth_bp
-    from routes.user import user_bp
-    from routes.admin import admin_bp
-    from routes.courses import courses_bp
-    from routes.mentors import mentors_bp
-    from routes.practice import practice_bp
-    from routes.tests import tests_bp
+    try:
+        print("📦 Registering blueprints...")
+        
+        from routes.auth import auth_bp
+        print("✓ Auth blueprint imported")
+        
+        from routes.user import user_bp
+        print("✓ User blueprint imported")
+        
+        from routes.admin import admin_bp
+        print("✓ Admin blueprint imported")
+        
+        from routes.courses import courses_bp
+        print("✓ Courses blueprint imported")
+        
+        from routes.mentors import mentors_bp
+        print("✓ Mentors blueprint imported")
+        
+        from routes.practice import practice_bp
+        print("✓ Practice blueprint imported")
+        
+        from routes.tests import tests_bp
+        print("✓ Tests blueprint imported")
 
-    from routes.assessments import assessments_bp
-    from routes.certificates import certificates_bp
-    from routes.mentor_portal import mentor_portal_bp
-    from routes.chat import chat_bp
-    from routes.weekly_evaluations import weekly_evaluations_bp
-    from routes.video_calls import video_calls_bp
-    from routes.notifications import notifications_bp
-    
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(user_bp, url_prefix='/api/user')
-    app.register_blueprint(courses_bp, url_prefix='/api/courses')
-    app.register_blueprint(mentors_bp, url_prefix='/api/mentors')
-    app.register_blueprint(practice_bp, url_prefix='/api/practice')
-    app.register_blueprint(tests_bp, url_prefix='/api/tests')
-
-    app.register_blueprint(assessments_bp, url_prefix='/api/assessments')
-    app.register_blueprint(certificates_bp, url_prefix='/api/certificates')
-    app.register_blueprint(admin_bp, url_prefix='/api/admin')
-    app.register_blueprint(mentor_portal_bp, url_prefix='/api/mentor-portal')
-    app.register_blueprint(chat_bp, url_prefix='/api/chat')
-    app.register_blueprint(weekly_evaluations_bp, url_prefix='/api/weekly-evaluations')
-    app.register_blueprint(video_calls_bp, url_prefix='/api/video-calls')
-    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+        from routes.assessments import assessments_bp
+        print("✓ Assessments blueprint imported")
+        
+        from routes.certificates import certificates_bp
+        print("✓ Certificates blueprint imported")
+        
+        from routes.mentor_portal import mentor_portal_bp
+        print("✓ Mentor portal blueprint imported")
+        
+        from routes.chat import chat_bp
+        print("✓ Chat blueprint imported")
+        
+        from routes.weekly_evaluations import weekly_evaluations_bp
+        print("✓ Weekly evaluations blueprint imported")
+        
+        from routes.video_calls import video_calls_bp
+        print("✓ Video calls blueprint imported")
+        
+        from routes.notifications import notifications_bp
+        print("✓ Notifications blueprint imported")
+        
+        from routes.final_projects import final_projects_bp
+        print("✓ Final projects blueprint imported")
+        
+        # Register all blueprints
+        app.register_blueprint(auth_bp, url_prefix='/api/auth')
+        print("✓ Auth routes registered at /api/auth")
+        
+        app.register_blueprint(user_bp, url_prefix='/api/user')
+        app.register_blueprint(admin_bp, url_prefix='/api/admin')
+        app.register_blueprint(courses_bp, url_prefix='/api/courses')
+        app.register_blueprint(mentors_bp, url_prefix='/api/mentors')
+        app.register_blueprint(practice_bp, url_prefix='/api/practice')
+        app.register_blueprint(tests_bp, url_prefix='/api/tests')
+        app.register_blueprint(assessments_bp, url_prefix='/api/assessments')
+        app.register_blueprint(certificates_bp, url_prefix='/api/certificates')
+        app.register_blueprint(mentor_portal_bp, url_prefix='/api/mentor-portal')
+        app.register_blueprint(chat_bp, url_prefix='/api/chat')
+        app.register_blueprint(weekly_evaluations_bp, url_prefix='/api/weekly-evaluations')
+        app.register_blueprint(video_calls_bp, url_prefix='/api/video-calls')
+        app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+        app.register_blueprint(final_projects_bp, url_prefix='/api/final-projects')
+        
+        print("✅ All blueprints registered successfully!")
+        
+    except Exception as e:
+        print(f"❌ Error registering blueprints: {e}")
+        import traceback
+        traceback.print_exc()
 
 # Register blueprints immediately after app creation
 with app.app_context():

@@ -41,7 +41,7 @@ const WeeklyEvaluation = () => {
         setCurrentEvaluation(currentData.current_evaluation);
       }
     } catch (err) {
-      setError('Failed to fetch evaluation information');
+      setError('Failed to fetch question information');
     } finally {
       setLoading(false);
     }
@@ -59,10 +59,10 @@ const WeeklyEvaluation = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Redirect to evaluation taking page
+        // Redirect to question taking page
         window.location.href = `/evaluation/${data.attempt_id}`;
       } else {
-        setError(data.message || 'Failed to start evaluation');
+        setError(data.message || 'Failed to start questions');
       }
     } catch (err) {
       setError('Network error occurred');
@@ -96,9 +96,9 @@ const WeeklyEvaluation = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Weekly Evaluation</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Weekly Questions</h1>
         <p className="mt-2 text-gray-600">
-          Test your skills with our comprehensive weekly evaluations
+          Test your skills with our comprehensive weekly question sets
         </p>
       </div>
 
@@ -111,7 +111,7 @@ const WeeklyEvaluation = () => {
       {/* Time Window Information */}
       <div className="mb-8 bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg shadow-lg text-white p-6">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">📅 Weekly Evaluation Schedule</h2>
+          <h2 className="text-2xl font-bold mb-2">📅 Weekly Questions Schedule</h2>
           <p className="text-purple-100 mb-4">Every Sunday • 5:00 PM - 7:00 PM</p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -143,7 +143,7 @@ const WeeklyEvaluation = () => {
           <div className="px-6 py-4 bg-green-50">
             <h2 className="text-xl font-semibold text-green-900 flex items-center">
               <span className="mr-2">🔥</span>
-              Evaluation Available Now!
+              Questions Available Now!
             </h2>
             <p className="text-green-700 text-sm mt-1">
               Window: {formatDateTime(currentEvaluation.scheduled_date).time} - {formatDateTime(new Date(new Date(currentEvaluation.scheduled_date).getTime() + 2*60*60*1000)).time}
@@ -208,13 +208,13 @@ const WeeklyEvaluation = () => {
               {currentEvaluation.user_status === 'not_started' && (
                 <div className="text-right">
                   <div className="mb-2 text-sm text-green-600 font-medium">
-                    ✅ Evaluation window is OPEN
+                    ✅ Question window is OPEN
                   </div>
                   <button
                     onClick={() => startEvaluation(currentEvaluation.id)}
                     className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors font-medium shadow-lg"
                   >
-                    🚀 Start Evaluation Now
+                    🚀 Start Questions Now
                   </button>
                   <div className="mt-2 text-xs text-gray-500">
                     60 minutes • Auto-submit after time limit
@@ -227,7 +227,7 @@ const WeeklyEvaluation = () => {
                   onClick={() => window.location.href = `/evaluation/${currentEvaluation.attempt_id}`}
                   className="bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 transition-colors font-medium"
                 >
-                  Continue Evaluation
+                  Continue Questions
                 </button>
               )}
               
@@ -250,7 +250,7 @@ const WeeklyEvaluation = () => {
           <div className="px-6 py-4 bg-yellow-50">
             <h2 className="text-xl font-semibold text-yellow-900 flex items-center">
               <span className="mr-2">📅</span>
-              Next Scheduled Evaluation
+              Next Scheduled Questions
             </h2>
             <p className="text-yellow-700 text-sm mt-1">
               Start button will unlock on {formatDateTime(nextEvaluation.scheduled_date).date} at {formatDateTime(nextEvaluation.scheduled_date).time}
@@ -306,10 +306,10 @@ const WeeklyEvaluation = () => {
                   <span className="text-blue-500 text-xl">ℹ️</span>
                 </div>
                 <div className="ml-3">
-                  <h4 className="text-sm font-medium text-blue-900">Evaluation Information</h4>
+                  <h4 className="text-sm font-medium text-blue-900">Question Set Information</h4>
                   <div className="mt-1 text-sm text-blue-700">
-                    <p>• The evaluation will automatically start at the scheduled time</p>
-                    <p>• You'll have a 24-hour window to complete it</p>
+                    <p>• The questions will automatically become available at the scheduled time</p>
+                    <p>• You'll have a 24-hour window to complete them</p>
                     <p>• Make sure you have a stable internet connection</p>
                     <p>• Prepare your coding environment for programming questions</p>
                   </div>
@@ -326,10 +326,10 @@ const WeeklyEvaluation = () => {
           <div className="px-6 py-12 text-center">
             <div className="text-6xl mb-4">📝</div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              No Evaluations Scheduled
+              No Questions Scheduled
             </h2>
             <p className="text-gray-600 mb-6">
-              There are currently no weekly evaluations scheduled. Check back later or contact your administrator.
+              There are currently no weekly questions scheduled. Check back later or contact your administrator.
             </p>
             <button
               onClick={() => window.location.href = '/practice'}
@@ -347,15 +347,15 @@ const WeeklyEvaluation = () => {
           <div className="px-6 py-12 text-center">
             <div className="text-6xl mb-4">⏰</div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              No Evaluations Scheduled
+              No Questions Scheduled
             </h2>
             <p className="text-gray-600 mb-6">
-              Weekly evaluations are scheduled every Sunday from 5:00 PM to 7:00 PM.
-              Check back during the evaluation window to participate.
+              Weekly questions are scheduled every Sunday from 5:00 PM to 7:00 PM.
+              Check back during the question window to participate.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4 max-w-md mx-auto">
               <p className="text-blue-800 text-sm">
-                <strong>Next evaluation window:</strong><br />
+                <strong>Next question window:</strong><br />
                 Sunday 5:00 PM - 7:00 PM
               </p>
             </div>
@@ -367,7 +367,7 @@ const WeeklyEvaluation = () => {
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">📊 View Scores</h3>
-          <p className="text-gray-600 mb-4">Check your evaluation history and detailed results</p>
+          <p className="text-gray-600 mb-4">Check your question history and detailed results</p>
           <button
             onClick={() => window.location.href = '/evaluation-scores'}
             className="text-blue-600 hover:text-blue-800 font-medium"
@@ -378,7 +378,7 @@ const WeeklyEvaluation = () => {
 
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">💪 Practice</h3>
-          <p className="text-gray-600 mb-4">Prepare for evaluations with practice questions</p>
+          <p className="text-gray-600 mb-4">Prepare for weekly questions with practice</p>
           <button
             onClick={() => window.location.href = '/practice'}
             className="text-blue-600 hover:text-blue-800 font-medium"

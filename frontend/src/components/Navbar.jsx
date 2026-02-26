@@ -11,7 +11,8 @@ import {
   BookOpen, 
   Users, 
   Award,
-  BarChart3
+  BarChart3,
+  Calendar
 } from 'lucide-react';
 
 const Navbar = () => {
@@ -36,11 +37,12 @@ const Navbar = () => {
     { path: '/video-calls', label: 'Video Calls', icon: Users },
     { path: '/practice', label: 'Practice', icon: Award },
     { path: '/tests', label: 'Tests', icon: Award },
-    { path: '/weekly-evaluation', label: 'Weekly Evaluation', icon: Star },
+    { path: '/weekly-evaluation', label: 'Weekly Questions', icon: Star },
   ];
 
   const mentorNavItems = [
     { path: '/mentor', label: 'Mentor Dashboard', icon: BarChart3 },
+    { path: '/mentor/bookings', label: 'Bookings', icon: Calendar },
     { path: '/mentor/chats', label: 'Student Chats', icon: Users },
     { path: '/mentor/sessions', label: 'Sessions', icon: BookOpen },
     { path: '/mentor/students', label: 'My Students', icon: Users },
@@ -54,7 +56,7 @@ const Navbar = () => {
     { path: '/admin/manage-mentors', label: 'Manage Mentors', icon: Users },
     { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
     { path: '/admin/questions', label: 'Questions', icon: Award },
-    { path: '/admin/weekly-evaluations', label: 'Weekly Evaluations', icon: Star },
+    { path: '/admin/weekly-evaluations', label: 'Weekly Questions', icon: Star },
   ];
 
   // Determine navigation items based on user role
@@ -71,15 +73,15 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-primary-600 to-accent-600 rounded-lg">
+            <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg">
               <Star className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gradient">SkillNova</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">SkillNova</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -93,8 +95,8 @@ const Navbar = () => {
                     to={item.path}
                     className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive(item.path)
-                        ? 'text-primary-600 bg-primary-50'
-                        : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
                     }`}
                   >
                     <Icon className="w-4 h-4" />

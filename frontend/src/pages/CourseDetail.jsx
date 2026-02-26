@@ -36,12 +36,16 @@ const CourseDetail = () => {
   const [showLearningPath, setShowLearningPath] = useState(false);
   const [finalTestCompleted, setFinalTestCompleted] = useState(false);
   const [finalTestScore, setFinalTestScore] = useState(null);
+  const [finalProject, setFinalProject] = useState(null);
+  const [finalProjectSubmission, setFinalProjectSubmission] = useState(null);
+  const [courseUnlocked, setCourseUnlocked] = useState(true);
 
   useEffect(() => {
     if (courseId) {
       fetchCourseDetails();
       if (user) {
         checkEnrollment();
+        fetchFinalProject();
       }
     }
     
@@ -112,8 +116,10 @@ const CourseDetail = () => {
   const fetchLearningPath = async () => {
     try {
       console.log('🗺️ Fetching learning path for course:', courseId);
-      const response = await api.get(`/courses/${courseId}/learning-path`);
-      console.log('📋 Learning path response:', response.data);
+      // Temporarily disabled - endpoint not implemented
+      // const response = await api.get(`/courses/${courseId}/learning-path`);
+      // console.log('📋 Learning path response:', response.data);
+      const response = { data: { success: false } }; // Placeholder
       if (response.data.success) {
         setLearningPath(response.data.learning_path);
         console.log('✅ Set learning path:', response.data.learning_path);
@@ -451,6 +457,46 @@ const CourseDetail = () => {
         ],
         explanation: module.content || 'This module covers important Java programming concepts with practical examples and hands-on exercises. You\'ll learn through detailed explanations, code examples, and real-world applications.'
       };
+    }
+  };
+
+  const fetchFinalProject = async () => {
+    try {
+      // Temporarily disabled - endpoint not fully implemented
+      // const response = await api.get(`/final-projects/courses/${courseId}/final-project`);
+      const response = { data: { success: false } }; // Placeholder
+      if (response.data.success) {
+        setFinalProject(response.data.final_project);
+        setFinalProjectSubmission(response.data.final_project.submission);
+        setCourseUnlocked(response.data.enrollment_status.course_unlocked);
+      }
+    } catch (error) {
+      console.log('No final project found or error:', error);
+    }
+  };
+
+  const submitFinalProject = async (completionPercentage, submissionData = {}) => {
+    try {
+      const response = await api.post(`/final-projects/courses/${courseId}/final-project/submit`, {
+        completion_percentage: completionPercentage,
+        submission_data: submissionData
+      });
+      
+      if (response.data.success) {
+        setFinalProjectSubmission(response.data.submission);
+        setCourseUnlocked(response.data.submission.course_unlocked);
+        
+        if (completionPercentage >= 75) {
+          toast.success('🎉 Final project 75% complete! Course features unlocked!');
+        } else {
+          toast.success('Final project progress saved!');
+        }
+        
+        // Refresh enrollment data
+        await checkEnrollment();
+      }
+    } catch (error) {
+      toast.error('Failed to submit final project');
     }
   };
 
@@ -936,6 +982,102 @@ const CourseDetail = () => {
                 </div>
               )}
             </div>
+
+            {/* Final Project Status */}
+            {isEnrolled && finalProject && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Final Project</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">{finalProject.title}</h4>
+                    <p className="text-sm text-gray-600 mb-3">{finalProject.description}</p>
+                  </div>
+                  
+                  {finalProjectSubmission ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">Progress</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {finalProjectSubmission.completion_percentage}%
+                        </span>
+                      </div>
+                      
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            finalProjectSubmission.completion_percentage >= 75 
+                              ? 'bg-green-600' 
+                              : 'bg-blue-600'
+                          }`}
+                          style={{ width: `${finalProjectSubmission.completion_percentage}%` }}
+                        ></div>
+                      </div>
+                      
+                      <div className={`p-3 rounded-lg ${
+                        finalProjectSubmission.completion_percentage >= 75
+                          ? 'bg-green-50 border border-green-200'
+                          : 'bg-orange-50 border border-orange-200'
+                      }`}>
+                        <div className="flex items-center space-x-2">
+                          {finalProjectSubmission.completion_percentage >= 75 ? (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-orange-600" />
+                          )}
+                          <span className={`text-sm font-medium ${
+                            finalProjectSubmission.completion_percentage >= 75
+                              ? 'text-green-800'
+                              : 'text-orange-800'
+                          }`}>
+                            {finalProjectSubmission.completion_percentage >= 75
+                              ? 'Course Unlocked!'
+                              : `Need ${75 - finalProjectSubmission.completion_percentage}% more to unlock`
+                            }
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => submitFinalProject(
+                            Math.min(100, finalProjectSubmission.completion_percentage + 10)
+                          )}
+                          className="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                        >
+                          Update Progress
+                        </button>
+                        
+                        {finalProjectSubmission.completion_percentage < 100 && (
+                          <button
+                            onClick={() => submitFinalProject(100)}
+                            className="flex-1 px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                          >
+                            Mark Complete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-600">
+                        Start your final project to unlock advanced course features.
+                      </p>
+                      <button
+                        onClick={() => submitFinalProject(10)}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Start Final Project
+                      </button>
+                    </div>
+                  )}
+                  
+                  <div className="text-xs text-gray-500 mt-3">
+                    <strong>Requirement:</strong> Complete 75% of final project to unlock all course features
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* What You'll Learn */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

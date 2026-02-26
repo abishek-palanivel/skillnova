@@ -8,7 +8,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models import (db, User, Course, CourseModule, CourseEnrollment, Mentor, Question, Assessment, BioData,
-                   WeeklyEvaluation, WeeklyEvaluationQuestion, WeeklyEvaluationAttempt, WeeklyEvaluationScore)
+                   WeeklyEvaluation, WeeklyEvaluationQuestion, WeeklyEvaluationAttempt, WeeklyEvaluationScore,
+                   MentorSession, ChatRoom, ChatMessage)
 from ai_recommendations_simple import ai_engine
 from ai_question_generator import ai_question_generator
 
@@ -255,6 +256,7 @@ def create_course():
     """Create a new course with comprehensive AI-generated content"""
     try:
         data = request.get_json()
+        print(f"📝 Received course creation request: {data}")
         
         if not data or not data.get('title') or not data.get('skill_level'):
             return jsonify({
@@ -265,15 +267,27 @@ def create_course():
         print(f"🤖 Creating AI-powered course: {data['title']} ({data['skill_level']})")
         
         # Import AI course generator
-        from ai_course_generator import ai_course_generator
+        try:
+            from ai_course_generator import ai_course_generator
+            print("✅ AI course generator imported successfully")
+        except Exception as import_error:
+            print(f"❌ Failed to import AI course generator: {import_error}")
+            raise import_error
         
         # Generate complete course content using AI
-        course_content = ai_course_generator.generate_complete_course(
-            course_title=data['title'],
-            skill_level=data['skill_level'].capitalize(),
-            duration_weeks=data.get('duration_weeks', 8),
-            modules_count=data.get('modules_count', 8)
-        )
+        try:
+            course_content = ai_course_generator.generate_complete_course(
+                course_title=data['title'],
+                skill_level=data['skill_level'].capitalize(),
+                duration_weeks=data.get('duration_weeks', 8),
+                modules_count=data.get('modules_count', 8)
+            )
+            print("✅ AI course content generated successfully")
+        except Exception as ai_error:
+            print(f"❌ AI course generation failed: {ai_error}")
+            import traceback
+            traceback.print_exc()
+            raise ai_error
         
         print(f"✅ AI generated course with {len(course_content['modules'])} modules and {len(course_content['questions'])} questions")
         
@@ -346,6 +360,8 @@ def create_course():
     except Exception as e:
         db.session.rollback()
         print(f"❌ Error creating course: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Failed to create course: {str(e)}'
@@ -366,20 +382,22 @@ def delete_course(course_id):
         
         course_title = course.title
         
-        # Check if there are active enrollments
+        # Check if there are active enrollments and update their status to 'dropped'
         active_enrollments = CourseEnrollment.query.filter_by(
             course_id=course_id,
             status='active'
-        ).count()
+        ).all()
         
-        if active_enrollments > 0:
-            return jsonify({
-                'success': False,
-                'message': f'Cannot delete course with {active_enrollments} active enrollments. Please complete or transfer students first.'
-            }), 400
+        if active_enrollments:
+            # Update active enrollments to 'dropped' status before deletion
+            for enrollment in active_enrollments:
+                enrollment.status = 'dropped'
+                enrollment.completed_at = datetime.utcnow()
+            
+            print(f"Updated {len(active_enrollments)} active enrollments to 'dropped' status")
         
         # Delete related data (cascade should handle this, but being explicit)
-        CourseEnrollment.query.filter_by(course_id=course_id).delete()
+        # Note: We don't delete enrollments as they serve as historical records
         CourseModule.query.filter_by(course_id=course_id).delete()
         Question.query.filter_by(course_id=course_id).delete()
         
@@ -389,7 +407,7 @@ def delete_course(course_id):
         
         return jsonify({
             'success': True,
-            'message': f'Course "{course_title}" deleted successfully'
+            'message': f'Course "{course_title}" deleted successfully. {len(active_enrollments)} active enrollments were marked as dropped.'
         }), 200
         
     except Exception as e:
@@ -823,15 +841,13 @@ def create_question():
         
     except Exception as e:
         db.session.rollback()
+        print(f"❌ Error creating question: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Failed to create question: {str(e)}'
         }), 500
-
-
-        
-    except Exception as e:
-        db.session.rollback()
 
 
 @admin_bp.route('/reports/performance', methods=['GET'])
@@ -1193,28 +1209,53 @@ def get_ai_course_recommendations():
 def get_all_mentors():
     """Get all mentors for admin management"""
     try:
-        # Get all mentors
-        mentors = Mentor.query.all()
+        from sqlalchemy.orm import joinedload
+        from sqlalchemy.exc import OperationalError, ProgrammingError
+        
+        # Check if mentors table exists
+        try:
+            # Get all mentors with eager loading of user relationship
+            mentors = Mentor.query.options(joinedload(Mentor.user)).all()
+        except (OperationalError, ProgrammingError) as db_error:
+            print(f"Database error - mentors table may not exist: {str(db_error)}")
+            # Return empty list if table doesn't exist
+            return jsonify({
+                'success': True,
+                'mentors': [],
+                'message': 'Mentors table not found. Please run database migrations.'
+            }), 200
         
         mentors_data = []
         for mentor in mentors:
-            user = mentor.user if mentor.user else None
-            mentors_data.append({
-                'id': str(mentor.id),
-                'user_id': str(mentor.user_id) if mentor.user_id else None,
-                'name': mentor.name,
-                'email': mentor.email,
-                'bio': mentor.bio,
-                'expertise': mentor.expertise,
-                'experience': mentor.experience,
-                'phone': mentor.phone,
-                'linkedin': mentor.linkedin,
-                'github': mentor.github,
-                'is_active': user.is_active if user else mentor.is_available,
-                'rating': mentor.rating,
-                'total_sessions': mentor.total_sessions,
-                'created_at': mentor.created_at.isoformat()
-            })
+            try:
+                # Safely access user relationship
+                user = None
+                if mentor.user_id:
+                    user = User.query.get(mentor.user_id)
+                
+                mentors_data.append({
+                    'id': str(mentor.id),
+                    'user_id': str(mentor.user_id) if mentor.user_id else None,
+                    'name': mentor.name or '',
+                    'email': mentor.email or '',
+                    'bio': mentor.bio or '',
+                    'expertise': mentor.expertise or '',
+                    'experience': mentor.experience_years or 0,
+                    'experience_years': mentor.experience_years or 0,  # Add this for AdminMentors.jsx
+                    'phone': mentor.phone or '',
+                    'linkedin': mentor.linkedin or '',
+                    'github': mentor.github or '',
+                    'is_active': user.is_active if user else mentor.is_available,
+                    'is_available': mentor.is_available,
+                    'rating': float(mentor.rating) if mentor.rating else 0.0,
+                    'hourly_rate': float(mentor.hourly_rate) if mentor.hourly_rate else 0.0,
+                    'total_sessions': mentor.total_sessions or 0,
+                    'created_at': mentor.created_at.isoformat() if mentor.created_at else datetime.utcnow().isoformat()
+                })
+            except Exception as mentor_error:
+                print(f"Error processing mentor {mentor.id}: {str(mentor_error)}")
+                # Continue with next mentor instead of failing completely
+                continue
         
         return jsonify({
             'success': True,
@@ -1222,6 +1263,9 @@ def get_all_mentors():
         }), 200
         
     except Exception as e:
+        print(f"Error in get_all_mentors: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Failed to get mentors: {str(e)}'
@@ -1242,8 +1286,12 @@ def update_mentor(mentor_id):
                 'message': 'Mentor not found'
             }), 404
         
-        user = mentor.user
         data = request.get_json()
+        
+        # Safely get user if exists
+        user = None
+        if mentor.user_id:
+            user = User.query.get(mentor.user_id)
         
         # Update user info if user exists
         if user:
@@ -1285,6 +1333,9 @@ def update_mentor(mentor_id):
         
     except Exception as e:
         db.session.rollback()
+        print(f"Error updating mentor: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Failed to update mentor: {str(e)}'
@@ -1304,7 +1355,11 @@ def delete_mentor(mentor_id):
             }), 404
         
         mentor_name = mentor.name
-        user = mentor.user
+        
+        # Safely get user if exists
+        user = None
+        if mentor.user_id:
+            user = User.query.get(mentor.user_id)
         
         # Delete mentor record
         db.session.delete(mentor)
@@ -1323,6 +1378,9 @@ def delete_mentor(mentor_id):
         
     except Exception as e:
         db.session.rollback()
+        print(f"Error deleting mentor: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Failed to delete mentor: {str(e)}'
@@ -2403,6 +2461,7 @@ def get_analytics_dashboard():
     """Get comprehensive analytics dashboard data with charts"""
     try:
         from sqlalchemy import func, extract
+        from sqlalchemy.exc import OperationalError, ProgrammingError
         from datetime import datetime, timedelta
         
         # User Analytics
@@ -2420,10 +2479,15 @@ def get_analytics_dashboard():
         total_assessments = Assessment.query.count()
         avg_assessment_score = db.session.query(func.avg(Assessment.score_percentage)).scalar() or 0
         
-        # Weekly Evaluation Analytics
-        total_evaluations = WeeklyEvaluation.query.count()
-        total_evaluation_attempts = WeeklyEvaluationAttempt.query.count()
-        completed_attempts = WeeklyEvaluationAttempt.query.filter_by(status='completed').count()
+        # Weekly Evaluation Analytics - with error handling
+        try:
+            total_evaluations = WeeklyEvaluation.query.count()
+            total_evaluation_attempts = WeeklyEvaluationAttempt.query.count()
+            completed_attempts = WeeklyEvaluationAttempt.query.filter_by(status='completed').count()
+        except (OperationalError, ProgrammingError):
+            total_evaluations = 0
+            total_evaluation_attempts = 0
+            completed_attempts = 0
         
         # User Registration Trend (Last 30 days)
         thirty_days_ago = datetime.utcnow() - timedelta(days=30)
@@ -2436,12 +2500,22 @@ def get_analytics_dashboard():
             User.is_mentor == False
         ).group_by(func.date(User.created_at)).all()
         
+        # If no registrations in last 30 days, create sample data
+        if not daily_registrations:
+            # Create sample data for the last 7 days
+            for i in range(7):
+                date = datetime.utcnow() - timedelta(days=6-i)
+                daily_registrations.append(type('obj', (object,), {
+                    'date': date.date(),
+                    'count': 0
+                })())
+        
         # Course Enrollment Trend
         course_enrollment_stats = db.session.query(
             Course.title,
             Course.skill_level,
             func.count(CourseEnrollment.id).label('enrollments')
-        ).join(CourseEnrollment).group_by(Course.id, Course.title, Course.skill_level).all()
+        ).outerjoin(CourseEnrollment).group_by(Course.id, Course.title, Course.skill_level).all()
         
         # Assessment Performance by Type
         assessment_performance = db.session.query(
@@ -2452,27 +2526,40 @@ def get_analytics_dashboard():
             func.max(Assessment.score_percentage).label('max_score')
         ).group_by(Assessment.assessment_type).all()
         
-        # Weekly Evaluation Performance Trend
-        evaluation_performance = db.session.query(
-            WeeklyEvaluation.title,
-            WeeklyEvaluation.scheduled_date,
-            func.count(WeeklyEvaluationScore.id).label('participants'),
-            func.avg(WeeklyEvaluationScore.score_percentage).label('avg_score')
-        ).join(WeeklyEvaluationScore).group_by(
-            WeeklyEvaluation.id, WeeklyEvaluation.title, WeeklyEvaluation.scheduled_date
-        ).order_by(WeeklyEvaluation.scheduled_date.desc()).limit(10).all()
+        # Weekly Evaluation Performance Trend - with error handling
+        try:
+            evaluation_performance = db.session.query(
+                WeeklyEvaluation.title,
+                WeeklyEvaluation.scheduled_date,
+                func.count(WeeklyEvaluationScore.id).label('participants'),
+                func.avg(WeeklyEvaluationScore.score_percentage).label('avg_score')
+            ).outerjoin(WeeklyEvaluationScore).group_by(
+                WeeklyEvaluation.id, WeeklyEvaluation.title, WeeklyEvaluation.scheduled_date
+            ).order_by(WeeklyEvaluation.scheduled_date.desc()).limit(10).all()
+        except (OperationalError, ProgrammingError):
+            evaluation_performance = []
         
-        # Mentor Session Analytics
-        total_sessions = MentorSession.query.count()
-        completed_sessions = MentorSession.query.filter_by(status='completed').count()
-        avg_session_rating = db.session.query(func.avg(MentorSession.rating)).filter(
-            MentorSession.rating.isnot(None)
-        ).scalar() or 0
+        # Mentor Session Analytics - with error handling
+        try:
+            total_sessions = MentorSession.query.count()
+            completed_sessions = MentorSession.query.filter_by(status='completed').count()
+            avg_session_rating = db.session.query(func.avg(MentorSession.rating)).filter(
+                MentorSession.rating.isnot(None)
+            ).scalar() or 0
+        except (OperationalError, ProgrammingError):
+            total_sessions = 0
+            completed_sessions = 0
+            avg_session_rating = 0
         
-        # Chat Analytics
-        total_chat_rooms = ChatRoom.query.count()
-        active_chats = ChatRoom.query.filter_by(is_active=True).count()
-        total_messages = ChatMessage.query.count()
+        # Chat Analytics - with error handling
+        try:
+            total_chat_rooms = ChatRoom.query.count()
+            active_chats = ChatRoom.query.filter_by(is_active=True).count()
+            total_messages = ChatMessage.query.count()
+        except (OperationalError, ProgrammingError):
+            total_chat_rooms = 0
+            active_chats = 0
+            total_messages = 0
         
         analytics_data = {
             'overview': {
@@ -2502,14 +2589,14 @@ def get_analytics_dashboard():
             'charts': {
                 'user_registrations': [
                     {
-                        'date': reg.date.isoformat(),
+                        'date': reg.date.isoformat() if hasattr(reg.date, 'isoformat') else str(reg.date),
                         'count': reg.count
                     } for reg in daily_registrations
                 ],
                 'course_enrollments': [
                     {
                         'course': stat.title,
-                        'skill_level': stat.skill_level,
+                        'skill_level': stat.skill_level or 'Not specified',
                         'enrollments': stat.enrollments
                     } for stat in course_enrollment_stats
                 ],
@@ -2517,17 +2604,17 @@ def get_analytics_dashboard():
                     {
                         'type': perf.assessment_type,
                         'total': perf.total,
-                        'avg_score': round(perf.avg_score, 1),
-                        'min_score': perf.min_score,
-                        'max_score': perf.max_score
+                        'avg_score': round(perf.avg_score, 1) if perf.avg_score else 0,
+                        'min_score': perf.min_score or 0,
+                        'max_score': perf.max_score or 0
                     } for perf in assessment_performance
                 ],
                 'evaluation_trends': [
                     {
                         'title': eval_perf.title,
-                        'date': eval_perf.scheduled_date.isoformat(),
+                        'date': eval_perf.scheduled_date.isoformat() if eval_perf.scheduled_date else datetime.utcnow().isoformat(),
                         'participants': eval_perf.participants,
-                        'avg_score': round(eval_perf.avg_score, 1)
+                        'avg_score': round(eval_perf.avg_score, 1) if eval_perf.avg_score else 0
                     } for eval_perf in evaluation_performance
                 ]
             }
@@ -2540,6 +2627,9 @@ def get_analytics_dashboard():
         }), 200
         
     except Exception as e:
+        print(f"Error in get_analytics_dashboard: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Failed to get analytics dashboard: {str(e)}'
@@ -2552,8 +2642,9 @@ def get_user_performance_analytics():
     """Get detailed user performance analytics"""
     try:
         from sqlalchemy import func
+        from sqlalchemy.exc import OperationalError, ProgrammingError
         
-        # Top performing users
+        # Top performing users - use outerjoin to handle users without assessments
         top_users = db.session.query(
             User.id,
             User.name,
@@ -2561,28 +2652,37 @@ def get_user_performance_analytics():
             func.avg(Assessment.score_percentage).label('avg_score'),
             func.count(Assessment.id).label('assessment_count'),
             func.count(CourseEnrollment.id).label('course_count')
-        ).join(Assessment).join(CourseEnrollment).group_by(
+        ).outerjoin(Assessment).outerjoin(CourseEnrollment).filter(
+            User.is_admin == False,
+            User.is_mentor == False
+        ).group_by(
             User.id, User.name, User.email
         ).order_by(func.avg(Assessment.score_percentage).desc()).limit(10).all()
         
-        # User engagement metrics
-        user_engagement = db.session.query(
-            User.id,
-            User.name,
-            func.count(ChatMessage.id).label('messages_sent'),
-            func.count(MentorSession.id).label('sessions_attended'),
-            func.count(WeeklyEvaluationAttempt.id).label('evaluations_taken')
-        ).outerjoin(ChatMessage, User.id == ChatMessage.sender_id)\
-         .outerjoin(MentorSession, User.id == MentorSession.user_id)\
-         .outerjoin(WeeklyEvaluationAttempt, User.id == WeeklyEvaluationAttempt.user_id)\
-         .filter(User.is_admin == False, User.is_mentor == False)\
-         .group_by(User.id, User.name).all()
+        # User engagement metrics - with error handling
+        try:
+            user_engagement = db.session.query(
+                User.id,
+                User.name,
+                func.count(ChatMessage.id).label('messages_sent'),
+                func.count(MentorSession.id).label('sessions_attended'),
+                func.count(WeeklyEvaluationAttempt.id).label('evaluations_taken')
+            ).outerjoin(ChatMessage, User.id == ChatMessage.sender_id)\
+             .outerjoin(MentorSession, User.id == MentorSession.user_id)\
+             .outerjoin(WeeklyEvaluationAttempt, User.id == WeeklyEvaluationAttempt.user_id)\
+             .filter(User.is_admin == False, User.is_mentor == False)\
+             .group_by(User.id, User.name).all()
+        except (OperationalError, ProgrammingError):
+            user_engagement = []
         
-        # Skill level distribution
-        skill_distribution = db.session.query(
-            BioData.experience_level,
-            func.count(BioData.id).label('count')
-        ).group_by(BioData.experience_level).all()
+        # Skill level distribution - with error handling
+        try:
+            skill_distribution = db.session.query(
+                BioData.experience_level,
+                func.count(BioData.id).label('count')
+            ).group_by(BioData.experience_level).all()
+        except (OperationalError, ProgrammingError):
+            skill_distribution = []
         
         return jsonify({
             'success': True,
@@ -2592,19 +2692,19 @@ def get_user_performance_analytics():
                         'user_id': str(user.id),
                         'name': user.name,
                         'email': user.email,
-                        'avg_score': round(user.avg_score, 1),
-                        'assessment_count': user.assessment_count,
-                        'course_count': user.course_count
+                        'avg_score': round(user.avg_score, 1) if user.avg_score else 0,
+                        'assessment_count': user.assessment_count or 0,
+                        'course_count': user.course_count or 0
                     } for user in top_users
                 ],
                 'engagement_metrics': [
                     {
                         'user_id': str(user.id),
                         'name': user.name,
-                        'messages_sent': user.messages_sent,
-                        'sessions_attended': user.sessions_attended,
-                        'evaluations_taken': user.evaluations_taken,
-                        'engagement_score': user.messages_sent + user.sessions_attended * 2 + user.evaluations_taken * 3
+                        'messages_sent': user.messages_sent or 0,
+                        'sessions_attended': user.sessions_attended or 0,
+                        'evaluations_taken': user.evaluations_taken or 0,
+                        'engagement_score': (user.messages_sent or 0) + (user.sessions_attended or 0) * 2 + (user.evaluations_taken or 0) * 3
                     } for user in user_engagement
                 ],
                 'skill_distribution': [
@@ -2617,6 +2717,9 @@ def get_user_performance_analytics():
         }), 200
         
     except Exception as e:
+        print(f"Error in get_user_performance_analytics: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Failed to get user performance analytics: {str(e)}'
@@ -3336,7 +3439,35 @@ def get_question_categories():
             'Mobile Development',
             'DevOps',
             'Software Engineering',
-            'System Design'
+            'System Design',
+            'AutoCAD',
+            'Photoshop',
+            'Illustrator',
+            'Figma',
+            'Blender',
+            '3D Modeling',
+            'Graphic Design',
+            'UI/UX Design',
+            'Video Editing',
+            'Animation',
+            'Game Development',
+            'Unity',
+            'Unreal Engine',
+            'React',
+            'Angular',
+            'Vue.js',
+            'Node.js',
+            'Django',
+            'Flask',
+            'Spring Boot',
+            'AWS',
+            'Azure',
+            'Docker',
+            'Kubernetes',
+            'Git',
+            'Linux',
+            'Networking',
+            'Cloud Computing'
         ]
         
         difficulties = ['easy', 'medium', 'hard']

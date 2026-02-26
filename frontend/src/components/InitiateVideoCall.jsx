@@ -54,7 +54,27 @@ const InitiateVideoCall = ({ isOpen, onClose, onCallInitiated }) => {
       }
     } catch (error) {
       console.error('Failed to initiate call:', error);
-      toast.error(error.response?.data?.message || 'Failed to initiate call');
+      
+      // Handle 409 conflict - existing active call
+      if (error.response?.status === 409) {
+        const existingCall = error.response.data.existing_call;
+        if (existingCall) {
+          toast.error(`There's already an active call with ${user.name}`, {
+            duration: 4000
+          });
+          // Optionally navigate to the existing call
+          if (existingCall.room_id) {
+            const shouldJoin = window.confirm(`There's already an active call with ${user.name}. Would you like to join it?`);
+            if (shouldJoin) {
+              window.location.href = `/video-call/${existingCall.room_id}`;
+            }
+          }
+        } else {
+          toast.error('There is already an active call between you and this user');
+        }
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to initiate call');
+      }
     }
   };
 
