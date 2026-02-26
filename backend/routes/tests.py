@@ -9,9 +9,10 @@ tests_bp = Blueprint('tests', __name__)
 @tests_bp.route('/initial-assessment', methods=['GET'])
 @jwt_required()
 def get_initial_assessment():
-    """Get initial assessment questions"""
+    """Get initial assessment questions based on user's bio data"""
     try:
         user_id = get_jwt_identity()
+        print(f"Initial assessment requested by user: {user_id}")
         
         # Check if user has already taken initial assessment
         existing_assessment = Assessment.query.filter_by(
@@ -26,64 +27,101 @@ def get_initial_assessment():
                 'existing_score': existing_assessment.score_percentage
             }), 409
         
-        # Get assessment questions (mix of difficulties)
-        easy_questions = Question.query.filter_by(
-            is_active=True,
-            difficulty_level='easy'
-        ).limit(5).all()
+        # Get user's bio data to determine topics
+        from models import BioData
+        bio_data = BioData.query.filter_by(user_id=user_id).first()
         
-        medium_questions = Question.query.filter_by(
-            is_active=True,
-            difficulty_level='medium'
-        ).limit(10).all()
+        # Extract topics from user's interests, skills, and goals
+        user_topics = []
+        if bio_data:
+            for field in [bio_data.interests, bio_data.skills, bio_data.goals]:
+                if field:
+                    # Split by common delimiters and clean up
+                    topics_text = field.replace(',', ' ').replace(';', ' ').replace('\n', ' ').replace('|', ' ')
+                    topics = [t.strip() for t in topics_text.split() if t.strip() and len(t.strip()) > 2]
+                    user_topics.extend(topics)
         
-        hard_questions = Question.query.filter_by(
-            is_active=True,
-            difficulty_level='hard'
-        ).limit(5).all()
+        # Remove duplicates and get unique topics
+        user_topics = list(set(user_topics))[:5]  # Limit to top 5 topics
         
-        all_questions = easy_questions + medium_questions + hard_questions
+        # If no topics found, use default
+        if not user_topics:
+            user_topics = ['Programming']
         
-        # If no questions found, generate them using AI
-        if not all_questions or len(all_questions) < 20:
-            print("Generating AI questions for initial assessment")
+        print(f"Generating questions for user topics: {user_topics}")
+        
+        # Get or generate assessment questions based on user's topics
+        all_questions = []
+        
+        # Try to get existing questions for user's topics
+        for topic in user_topics:
+            topic_questions = Question.query.filter(
+                Question.is_active == True,
+                Question.category.ilike(f'%{topic}%')
+            ).limit(4).all()
+            all_questions.extend(topic_questions)
+        
+        print(f"Found {len(all_questions)} existing questions for user topics")
+        
+        # If not enough questions, generate them using AI based on user's topics
+        if len(all_questions) < 20:
+            print(f"Generating AI questions for user's topics: {user_topics}")
             from ai_question_generator import ai_question_generator
             
-            category = 'Programming'  # Default category for initial assessment
-            difficulties = ['easy'] * 5 + ['medium'] * 10 + ['hard'] * 5
+            # Generate questions for each user topic
+            questions_per_topic = 20 // len(user_topics) if user_topics else 20
+            difficulties = ['easy', 'medium', 'hard']
             
-            for difficulty in difficulties:
+            generated_count = 0
+            for topic in user_topics:
+                for difficulty in difficulties:
+                    try:
+                        print(f"Generating {difficulty} question for {topic}...")
+                        question_data = ai_question_generator.generate_question(
+                            'multiple_choice', difficulty, topic
+                        )
+                        
+                        if question_data and question_data.get('question_text'):
+                            new_question = Question(
+                                question_text=question_data['question_text'],
+                                question_type='multiple_choice',
+                                difficulty_level=difficulty,
+                                category=topic,
+                                correct_answer=question_data.get('correct_answer'),
+                                options=question_data.get('options'),
+                                explanation=question_data.get('explanation'),
+                                is_active=True
+                            )
+                            db.session.add(new_question)
+                            all_questions.append(new_question)
+                            generated_count += 1
+                            print(f"Generated question {generated_count} for {topic}")
+                        
+                        if generated_count >= 20:
+                            break
+                    except Exception as gen_error:
+                        print(f"Error generating {difficulty} question for {topic}: {gen_error}")
+                        continue
+                
+                if generated_count >= 20:
+                    break
+            
+            if generated_count > 0:
                 try:
-                    question_data = ai_question_generator.generate_question(
-                        'multiple_choice', difficulty, category
-                    )
-                    
-                    new_question = Question(
-                        question_text=question_data['question_text'],
-                        question_type='multiple_choice',
-                        difficulty_level=difficulty,
-                        category=category,
-                        correct_answer=question_data.get('correct_answer'),
-                        options=question_data.get('options'),
-                        explanation=question_data.get('explanation'),
-                        is_active=True
-                    )
-                    db.session.add(new_question)
-                except Exception as gen_error:
-                    print(f"Error generating question: {gen_error}")
-                    continue
-            
-            db.session.commit()
-            
-            # Reload questions
-            easy_questions = Question.query.filter_by(is_active=True, difficulty_level='easy').limit(5).all()
-            medium_questions = Question.query.filter_by(is_active=True, difficulty_level='medium').limit(10).all()
-            hard_questions = Question.query.filter_by(is_active=True, difficulty_level='hard').limit(5).all()
-            all_questions = easy_questions + medium_questions + hard_questions
+                    db.session.commit()
+                    print(f"Successfully saved {generated_count} questions to database")
+                except Exception as commit_error:
+                    print(f"Error committing questions: {commit_error}")
+                    db.session.rollback()
         
-        # If still no questions, get any available questions
+        # If still no questions, return error
         if not all_questions:
-            all_questions = Question.query.filter_by(is_active=True).limit(20).all()
+            print("ERROR: No questions available even after generation attempt")
+            return jsonify({
+                'success': False,
+                'message': 'Unable to generate assessment questions. Please complete your bio data with your interests and skills.',
+                'error': 'No questions available'
+            }), 500
         
         assessment_questions = []
         for i, question in enumerate(all_questions, 1):
